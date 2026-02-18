@@ -2,7 +2,9 @@ import mongoose from "mongoose";
 import { ENV } from "./env.js";
 export const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(ENV.DB_URl);
+    const uri = ENV.DB_URL;
+    if (!uri) throw new Error("Missing MongoDB connection string (DB_URL)");
+    const conn = await mongoose.connect(uri);
     console.log("✅ connected to MongoDB : ", conn.connection.host);
   } catch (error) {
     console.log("❌ Error connecting to MongoDB : ", error);

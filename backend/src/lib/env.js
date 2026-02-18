@@ -2,6 +2,11 @@ import dotenv from "dotenv";
 dotenv.config();
 export const ENV = {
   PORT: process.env.PORT,
-  DB_URl: process.env.DB_URl,
+  // support common env var names and fallbacks
+  DB_URL:
+    process.env.DB_URL ||
+    process.env.MONGODB_URI ||
+    process.env.MONGO_URI ||
+    process.env.DB_URl,
   NODE_ENV: process.env.NODE_ENV,
 };
