@@ -7,6 +7,8 @@ import App from "./App.jsx";
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 if (!PUBLISHABLE_KEY) {
+  console.error("key problem");
+
   throw new Error("Missing Clerk Publishable Key");
 }
 
