@@ -8,11 +8,13 @@ const Theme = () => {
 
   return (
     <label className="swap swap-rotate transition-all duration-500 ease-in-out hover:scale-110 cursor-pointer">
+      <span className="sr-only">Toggle theme</span>
       {/* hidden checkbox */}
       <input
         type="checkbox"
         className="theme-controller"
         value="caramellatte"
+        aria-label="Toggle theme"
       />
 
       {/* Sun icon */}
