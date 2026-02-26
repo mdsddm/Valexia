@@ -10,14 +10,24 @@ import { Navigate, Route, Routes } from "react-router";
 import HomePage from "./pages/HomePage.jsx";
 import ProblemsPage from "./pages/ProblemsPage.jsx";
 import { Toaster } from "react-hot-toast";
+import DashBoard from "./pages/DashBoard.jsx";
+import FullScreenLoader from "./components/FullScreenLoader.jsx";
 function App() {
-  const { isSignedIn } = useUser();
-  console.log(isSignedIn);
-
+  const { isSignedIn, isLoaded } = useUser();
+  if (!isLoaded) {
+    return <FullScreenLoader />;
+  }
   return (
     <>
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route
+          path="/"
+          element={!isSignedIn ? <HomePage /> : <Navigate to={"/dashboard"} />}
+        />
+        <Route
+          path="/dashboard"
+          element={isSignedIn ? <DashBoard /> : <Navigate to={"/"} />}
+        />
         <Route
           path="/problems"
           element={isSignedIn ? <ProblemsPage /> : <Navigate to={"/"} />}
