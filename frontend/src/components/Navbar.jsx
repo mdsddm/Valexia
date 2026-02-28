@@ -28,8 +28,8 @@ const Navbar = () => {
           </div>
         </Link>
 
-        <div className="flex item-center gap-12">
-          <div className="flex items-center gap-6">
+        <div className="flex gap-12">
+          <div className="flex gap-6">
             {/* PROBLEMS PAGE LINK */}
             <Link
               to={"/problems"}
