@@ -23,7 +23,7 @@ const HomePage = () => {
             className="flex items-center gap-3 hover:scale-105 transition-transform duration-200"
           >
             <div className="size-10 rounded-xl bg-linear-to-br from-primary via-secondary to-accent flex items-center justify-center shadow-md">
-              <Gem className="size-6 text-primary-content" />
+              <Gem className="size-7 text-primary-content" />
             </div>
 
             <div className="flex flex-col leading-tight">
@@ -39,7 +39,7 @@ const HomePage = () => {
           <div className="flex gap-12">
             {/* AUTH BUTTON */}
             <SignInButton mode="modal">
-              <button className="btn btn-primary btn-sm md:btn-md shadow-md hover:shadow-lg transition-all duration-200">
+              <button className="btn btn-primary btn-sm md:btn-md shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200">
                 Get Started
                 <ArrowRightIcon className="size-4 ml-1" />
               </button>
