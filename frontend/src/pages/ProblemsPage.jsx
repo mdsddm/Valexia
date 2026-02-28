@@ -10,20 +10,21 @@ import { PROBLEMS, DATA_STRUCTURES, ALGORITHMS } from "../data/problems.js";
 const ProblemsPage = () => {
   const [selectDSA, setSelectDSA] = useState("");
   const [selectAlgo, setSelectAlgo] = useState("");
-  const [problems, setProblems] = useState(Object.values(PROBLEMS));
-  const filterProblem = (select) => {
-    if (!select) {
-      setProblems(Object.values(PROBLEMS));
-      return;
-    }
+  const allProblems = Object.values(PROBLEMS);
+  const [problems, setProblems] = useState(allProblems);
 
-    const result = Object.values(PROBLEMS).filter((problem) =>
-      problem.category.split(" • ").includes(select),
-    );
-
-    setProblems(result);
+  const applyFilters = (nextDSA = selectDSA, nextAlgo = selectAlgo) => {
+    const filtered = allProblems.filter((problem) => {
+      const categories = problem.category.split(" • ");
+      const matchesDSA = !nextDSA || categories.includes(nextDSA);
+      const matchesAlgo = !nextAlgo || categories.includes(nextAlgo);
+      return matchesDSA && matchesAlgo;
+    });
+    setProblems(filtered);
   };
 
+  const filterDSA = (value) => applyFilters(value ?? "", selectAlgo);
+  const filterAlgo = (value) => applyFilters(selectDSA, value ?? "");
   return (
     <div className="min-h-screen bg-base-100 text-base-content transition-colors duration-300">
       {/* NAVBAR COMPONENT */}
@@ -35,7 +36,7 @@ const ProblemsPage = () => {
           <div className="mb-8 ">
             <h1 className="text-4xl font-bold mb-2">Practice Problems</h1>
             <p className="text-base-content/70">
-              Sharpen you coding skills with these curated problems
+              Sharpen your coding skills with these curated problems
             </p>
           </div>
           {/* DS */}
@@ -44,7 +45,7 @@ const ProblemsPage = () => {
             {(selectDSA !== "" || selectAlgo !== "") && (
               <button
                 onClick={() => {
-                  filterProblem();
+                  setProblems(allProblems);
                   setSelectDSA("");
                   setSelectAlgo("");
                 }}
@@ -59,14 +60,14 @@ const ProblemsPage = () => {
               <ProblemFilterDropdown
                 array={DATA_STRUCTURES}
                 defaultName={"Data Structure"}
-                filter={filterProblem}
+                filter={filterDSA}
                 name={selectDSA}
                 setName={setSelectDSA}
               />
               <ProblemFilterDropdown
                 array={ALGORITHMS}
                 defaultName={"Algorithm"}
-                filter={filterProblem}
+                filter={filterAlgo}
                 name={selectAlgo}
                 setName={setSelectAlgo}
               />

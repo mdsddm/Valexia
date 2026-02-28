@@ -27,7 +27,7 @@ const Problem = ({ problem }) => {
             </div>
           </div>
           <p className="text-base-content/80 mb-2">
-            {problem.description.text}
+            {problem.description?.text ?? ""}
           </p>
         </div>
         {/* RIGHT SIDE */}

@@ -1320,7 +1320,7 @@ class Solution {
     id: "trapping-rain-water",
     title: "Trapping Rain Water",
     difficulty: "Hard",
-    category: "Array • Two Pointers • DP",
+    category: "Array • Two Pointers • Dynamic Programming",
     description: {
       text: "Given n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining.",
       notes: [],

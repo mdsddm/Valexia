@@ -8,8 +8,14 @@
   <title>Valexia</title>
   <script>
     (function () {
-      const savedTheme = localStorage.getItem("theme");
-      const theme = savedTheme ? savedTheme : "forest";
+      const defaultTheme = "forest";
+      let theme = defaultTheme;
+      try {
+        const savedTheme = localStorage.getItem("theme");
+        if (savedTheme) theme = savedTheme;
+      } catch {
+        theme = defaultTheme;
+      }
       document.documentElement.setAttribute("data-theme", theme);
     })();
   </script>
