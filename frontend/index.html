@@ -1,11 +1,18 @@
 <!doctype html>
-<html lang="en" data-theme="forest">
+<html lang="en">
 
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/gem.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Valexia</title>
+  <script>
+    (function () {
+      const savedTheme = localStorage.getItem("theme");
+      const theme = savedTheme ? savedTheme : "forest";
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
 </head>
 
 <body>
