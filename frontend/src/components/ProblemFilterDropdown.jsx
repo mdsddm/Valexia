@@ -7,14 +7,14 @@ const ProblemFilterDropdown = ({
   setName,
 }) => {
   return (
-    <div className="dropdown dropdown-hover">
+    <div className="dropdown dropdown-hover dropdown-center">
       <div
         tabIndex={0}
         role="button"
         className="btn m-1 bg-btn rounded-lg transition-all duration-200 bg-primary text-primary-content"
       >
         {name === "" ? defaultName : name}
-        <ChevronDown />
+        <ChevronDown className="size-4" />
       </div>
       <ul
         tabIndex="-1"

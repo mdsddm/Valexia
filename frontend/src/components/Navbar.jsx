@@ -28,39 +28,35 @@ const Navbar = () => {
           </div>
         </Link>
 
-        <div className="flex gap-12">
-          <div className="flex gap-6">
-            {/* PROBLEMS PAGE LINK */}
-            <Link
-              to={"/problems"}
-              className={`px-4 py-2.5 rounded-lg transition-all duration-200 hover:bg-primary/90 hover:text-primary-content/90
-                 ${isActive("/problems") ? "bg-primary text-primary-content" : "hover:bg-base-200 text-base-content/70 hover:text-base-content"}`}
-            >
-              <div className="flex items-center gap-2.5">
-                <BookOpenIcon className="size-5" />
-                <span className="font-medium hidden sm:inline">Problems</span>
-              </div>
-            </Link>
-            {/* DASHBOARD PAGE LINK */}
-            <Link
-              to={"/dashboard"}
-              className={`px-4 py-2.5 rounded-lg transition-all duration-200
-                hover:bg-primary/90 hover:text-primary-content/90
-                 ${isActive("/dashboard") ? "bg-primary text-primary-content" : "hover:bg-base-200 text-base-content/70 hover:text-base-content"}`}
-            >
-              <div className="flex items-center gap-2.5">
-                <LayoutDashboardIcon className="size-5" />
-                <span className="font-medium hidden sm:inline">Dashboard</span>
-              </div>
-            </Link>
-          </div>
+        <div className="flex gap-6">
+          {/* PROBLEMS PAGE LINK */}
+          <Link
+            to={"/problems"}
+            className={`px-4 py-2.5 rounded-lg transition-all duration-200 hover:bg-primary/90 hover:text-primary-content/90
+               ${isActive("/problems") ? "bg-primary text-primary-content" : "hover:bg-base-200 text-base-content/70 hover:text-base-content"}`}
+          >
+            <div className="flex items-center gap-2.5">
+              <BookOpenIcon className="size-5" />
+              <span className="font-medium hidden sm:inline">Problems</span>
+            </div>
+          </Link>
+          {/* DASHBOARD PAGE LINK */}
+          <Link
+            to={"/dashboard"}
+            className={`px-4 py-2.5 rounded-lg transition-all duration-200
+              hover:bg-primary/90 hover:text-primary-content/90
+               ${isActive("/dashboard") ? "bg-primary text-primary-content" : "hover:bg-base-200 text-base-content/70 hover:text-base-content"}`}
+          >
+            <div className="flex items-center gap-2.5">
+              <LayoutDashboardIcon className="size-5" />
+              <span className="font-medium hidden sm:inline">Dashboard</span>
+            </div>
+          </Link>
 
-          <div className="flex items-center gap-6">
-            {/* Theme component */}
-            <Theme />
-            {/* User Button */}
-            <UserButton />
-          </div>
+          {/* Theme component */}
+          <Theme />
+          {/* User Button */}
+          <UserButton className="shadow-none " />
         </div>
       </div>
     </nav>
