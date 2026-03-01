@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { themes } from "../lib/themes.js";
-import {
-  CheckCheckIcon,
-  CheckCircle,
-  CheckIcon,
-  ChevronDown,
-} from "lucide-react";
+import { CheckCircle, Palette, ChevronDown } from "lucide-react";
+
 const Theme = () => {
-  const [theme, setTheme] = useState(localStorage.getItem("theme") || "forest");
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("theme") || "forest";
+    }
+    return "forest";
+  });
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -15,45 +16,35 @@ const Theme = () => {
   }, [theme]);
 
   return (
-    <div className="dropdown dropdown-center">
+    <div className="dropdown dropdown-end">
       <div
         tabIndex={0}
         role="button"
-        className="flex items-center gap-2.5
-             px-4 py-2.5
-             rounded-lg
-             bg-accent/10 text-accent
-             hover:bg-accent hover:text-accent-content
-             transition-all duration-200
-             cursor-pointer"
+        className="group flex items-center gap-2 px-3 py-2 rounded-md text-sm bg-accent/10 text-accent hover:bg-accent hover:text-accent-content transition-all duration-200 cursor-pointer"
       >
-        <span className="font-medium">Theme</span>
-        <ChevronDown className="size-4 transition-transform duration-200" />
+        <Palette className="size-5 md:hidden" />
+
+        <div className="hidden md:flex items-center gap-1">
+          <span className="font-medium">Theme</span>
+          <ChevronDown className="size-3.5 transition-transform duration-200 group-focus:rotate-180" />
+        </div>
       </div>
 
       <ul
         tabIndex={0}
-        className="dropdown-content menu bg-base-300 mt-1 rounded-box z-1 w-52 p-2 shadow-2xl"
+        className="dropdown-content menu bg-base-200 mt-1 rounded-md z-10 w-44 p-1.5 shadow-xl"
       >
-        {themes.map((themeObj) => {
-          return (
-            <li
-              className="hover:bg-primary/80 hover:text-primary-content rounded-box"
-              key={themeObj.value}
+        {themes.map((themeObj) => (
+          <li key={themeObj.value}>
+            <button
+              onClick={() => setTheme(themeObj.value)}
+              className="flex items-center justify-between w-full px-3 py-1.5 rounded-md text-sm hover:bg-primary/80 hover:text-primary-content"
             >
-              <button
-                onClick={() => setTheme(themeObj.value)}
-                className="flex items-center justify-between w-full px-6 py-2 rounded-box"
-              >
-                <span>{themeObj.name}</span>
-
-                {theme === themeObj.value && (
-                  <CheckCircle size={18} className="ml-2" />
-                )}
-              </button>
-            </li>
-          );
-        })}
+              <span>{themeObj.name}</span>
+              {theme === themeObj.value && <CheckCircle size={16} />}
+            </button>
+          </li>
+        ))}
       </ul>
     </div>
   );

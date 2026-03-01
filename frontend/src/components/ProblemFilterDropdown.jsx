@@ -1,4 +1,5 @@
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown, X, Filter } from "lucide-react";
+
 const ProblemFilterDropdown = ({
   array,
   defaultName,
@@ -11,14 +12,24 @@ const ProblemFilterDropdown = ({
       <div
         tabIndex={0}
         role="button"
-        className="btn m-1 bg-btn rounded-lg transition-all duration-200 bg-primary text-primary-content"
+        className="group flex items-center mt-1 gap-2 px-4 py-2 rounded-lg
+        transition-all duration-200
+        bg-primary text-primary-content
+        hover:opacity-90 cursor-pointer"
       >
-        {name === "" ? defaultName : name}
-        <ChevronDown className="size-4" />
+        {/* Small screen → show Filter icon */}
+        <Filter className="size-5 md:hidden" />
+
+        {/* Medium & up → show Name + Chevron */}
+        <div className="hidden md:flex items-center gap-2">
+          <span>{name === "" ? defaultName : name}</span>
+          <ChevronDown className="size-4 transition-transform duration-200 group-focus:rotate-180" />
+        </div>
       </div>
+
       <ul
-        tabIndex="-1"
-        className="dropdown-content menu bg-base-300 rounded-box z-1 w-52 p-2"
+        tabIndex={0}
+        className="dropdown-content menu bg-base-300 rounded-box z-10 w-52 p-2 shadow-lg"
       >
         {array
           .filter((string) => string !== name)
@@ -38,7 +49,8 @@ const ProblemFilterDropdown = ({
               </button>
             </li>
           ))}
-        {/* Clear LI */}
+
+        {/* Clear Filter */}
         {name !== "" && (
           <li>
             <button
@@ -47,8 +59,8 @@ const ProblemFilterDropdown = ({
                 setName("");
               }}
               className="flex items-center justify-center gap-2
-                 text-sm text-primary hover:bg-primary/10
-                 rounded-box py-2 transition-all duration-200"
+              text-sm text-primary hover:bg-primary/10
+              rounded-box py-2 transition-all duration-200"
             >
               <X className="size-4" />
               Clear Filter

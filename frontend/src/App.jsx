@@ -9,6 +9,7 @@ import {
 import { Navigate, Route, Routes } from "react-router";
 import HomePage from "./pages/HomePage.jsx";
 import ProblemsPage from "./pages/ProblemsPage.jsx";
+import ProblemPage from "./pages/ProblemPage.jsx";
 import { Toaster } from "react-hot-toast";
 import DashBoard from "./pages/DashBoard.jsx";
 import FullScreenLoader from "./components/FullScreenLoader.jsx";
@@ -31,6 +32,10 @@ function App() {
         <Route
           path="/problems"
           element={isSignedIn ? <ProblemsPage /> : <Navigate to={"/"} />}
+        />
+        <Route
+          path="/problem/:id"
+          element={isSignedIn ? <ProblemPage /> : <Navigate to={"/"} />}
         />
       </Routes>
       <Toaster toastOptions={{ duration: 3000 }} />
