@@ -13,6 +13,11 @@ const Theme = () => {
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("theme", theme);
+    const event = new CustomEvent("theme-change", {
+      detail: { theme },
+    });
+
+    window.dispatchEvent(event);
   }, [theme]);
 
   return (
