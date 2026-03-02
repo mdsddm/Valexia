@@ -25,7 +25,7 @@ const Theme = () => {
       <div
         tabIndex={0}
         role="button"
-        className="group flex items-center gap-2 px-3 py-2 rounded-md text-sm bg-accent/10 text-accent hover:bg-accent hover:text-accent-content transition-all duration-200 cursor-pointer"
+        className="group flex items-center gap-2 px-3 py-2 rounded-md text-sm bg-primary/10 text-primary hover:bg-primary hover:text-accent-content transition-all duration-200 cursor-pointer"
       >
         <Palette className="size-5 md:hidden" />
 

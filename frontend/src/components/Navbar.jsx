@@ -34,16 +34,16 @@ const Navbar = () => {
           {/* PROBLEMS */}
           <Link
             to={"/problems"}
-            className={`px-3 py-2 rounded-md transition-all duration-200
+            className={`px-3 py-2 rounded-md transition-all duration-200 shrink-0
             ${
               isActive("/problems")
                 ? "bg-primary text-primary-content"
-                : "text-base-content/70 hover:bg-base-200 hover:text-base-content"
+                : "text-base-content/70 hover:bg-primary/70 hover:text-primary-content hover:scale-105"
             }`}
           >
             <div className="flex items-center gap-2">
               <BookOpenIcon className="size-4" />
-              <span className="font-medium hidden sm:inline text-sm">
+              <span className="font-medium hidden md:inline text-sm">
                 Problems
               </span>
             </div>
@@ -52,16 +52,16 @@ const Navbar = () => {
           {/* DASHBOARD */}
           <Link
             to={"/dashboard"}
-            className={`px-3 py-2 rounded-md transition-all duration-200
+            className={`px-3 py-2 rounded-md transition-all duration-200 shrink-0
             ${
               isActive("/dashboard")
                 ? "bg-primary text-primary-content"
-                : "text-base-content/70 hover:bg-base-200 hover:text-base-content"
+                : "text-base-content/70 hover:bg-primary/70 hover:text-primary-content hover:scale-105"
             }`}
           >
             <div className="flex items-center gap-2">
               <LayoutDashboardIcon className="size-4" />
-              <span className="font-medium hidden sm:inline text-sm">
+              <span className="font-medium hidden md:inline text-sm">
                 Dashboard
               </span>
             </div>

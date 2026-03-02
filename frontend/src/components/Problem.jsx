@@ -4,7 +4,7 @@ import { getDifficultyBadgeClass } from "../lib/utils.js";
 
 const Problem = ({ problem }) => {
   return (
-    <div className="bg-accent/5 hover:bg-accent/15 transition-colors duration-200 rounded-box px-5 py-3">
+    <div className="bg-accent/5 hover:bg-accent/15 transition-colors duration-200 rounded-box px-6 py-4 shadow-sm/20 shadow-primary">
       <div className="flex items-center justify-between gap-4">
         {/* LEFT SIDE */}
         <div className="flex-1">
@@ -15,7 +15,7 @@ const Problem = ({ problem }) => {
             </div>
 
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 -mt-1">
                 <h2 className="text-lg font-semibold truncate">
                   {problem.title}
                 </h2>
@@ -34,7 +34,7 @@ const Problem = ({ problem }) => {
           </div>
 
           {/* DESCRIPTION */}
-          <p className="text-sm text-base-content/75 line-clamp-2">
+          <p className="text-sm text-base-content/75 line-clamp-2 hover:text-base-content">
             {problem.description?.text ?? ""}
           </p>
         </div>

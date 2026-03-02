@@ -1,4 +1,4 @@
-import { ChevronDown, X, Filter } from "lucide-react";
+import { ChevronDown, X, Filter, CheckCircle } from "lucide-react";
 
 const ProblemFilterDropdown = ({
   array,
@@ -8,47 +8,45 @@ const ProblemFilterDropdown = ({
   setName,
 }) => {
   return (
-    <div className="dropdown dropdown-hover dropdown-center">
+    <div className="dropdown dropdown-center">
       <div
         tabIndex={0}
         role="button"
-        className="group flex items-center mt-1 gap-2 px-4 py-2 rounded-lg
-        transition-all duration-200
-        bg-primary text-primary-content
-        hover:opacity-90 cursor-pointer"
+        className={`group flex items-center gap-2 px-2 py-1 rounded-lg
+        transition-all duration-200 hover:opacity-90 cursor-pointer
+        ${name === "" ? "bg-primary text-primary-content" : "bg-secondary text-primary-content"}`}
       >
         {/* Small screen → show Filter icon */}
         <Filter className="size-5 md:hidden" />
 
         {/* Medium & up → show Name + Chevron */}
         <div className="hidden md:flex items-center gap-2">
-          <span>{name === "" ? defaultName : name}</span>
+          <span>{defaultName}</span>
           <ChevronDown className="size-4 transition-transform duration-200 group-focus:rotate-180" />
         </div>
       </div>
 
       <ul
         tabIndex={0}
-        className="dropdown-content menu bg-base-300 rounded-box z-10 w-52 p-2 shadow-lg"
+        className="dropdown-content mt-2 menu bg-base-300 rounded-box z-10 w-52 p-2 shadow-lg"
       >
-        {array
-          .filter((string) => string !== name)
-          .map((string, idx) => (
-            <li
-              key={idx}
-              className="rounded-box hover:bg-accent hover:text-accent-content"
+        {array.map((string, idx) => (
+          <li
+            key={idx}
+            className="rounded-lg hover:bg-accent hover:text-accent-content"
+          >
+            <button
+              className="flex items-center justify-between w-full px-3 py-1.5 rounded-lg text-sm hover:bg-primary/80 hover:text-primary-content"
+              onClick={() => {
+                filter(string);
+                setName(string);
+              }}
             >
-              <button
-                className="w-full text-left rounded-box"
-                onClick={() => {
-                  filter(string);
-                  setName(string);
-                }}
-              >
-                {string}
-              </button>
-            </li>
-          ))}
+              <span>{string}</span>
+              {name === string && <CheckCircle size={16} />}
+            </button>
+          </li>
+        ))}
 
         {/* Clear Filter */}
         {name !== "" && (

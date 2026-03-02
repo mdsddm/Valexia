@@ -26,13 +26,14 @@ function ProblemDescription({
         </div>
 
         <select
-          className="select select-sm w-full mt-4"
+          className="select select-sm w-full text-justify text-sm
+           mt-4"
           value={currentProblemId}
           onChange={(e) => onProblemChange(e.target.value)}
         >
           {allProblems.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.title}
+              <p className="text-sm"> {p.title}</p>
             </option>
           ))}
         </select>
@@ -44,7 +45,7 @@ function ProblemDescription({
         <section>
           <h2 className="text-lg font-semibold mb-4">Description</h2>
           <div className="space-y-3 text-base leading-relaxed text-base-content">
-            <p>{problem.description.text}</p>
+            <p className="text-justify mb-6">{problem.description.text}</p>
             {problem.description.notes.map((note, idx) => (
               <p key={idx}>{note}</p>
             ))}
