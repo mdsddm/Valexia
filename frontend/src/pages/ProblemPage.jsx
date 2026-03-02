@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router";
 import { PROBLEMS } from "../data/problems";
 import Navbar from "../components/Navbar";
@@ -21,11 +21,19 @@ function ProblemPage() {
   const [code, setCode] = useState(PROBLEMS["two-sum"].starterCode.javascript);
   const [output, setOutput] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [isMax, setIsMax] = useState(false);
 
   const currentProblem = PROBLEMS[currentProblemId];
 
   useEffect(() => {
     function callUseEffect() {
+      if (isMax) {
+        horizontalPanelRef.current?.setLayout([0, 100]);
+        verticalPanelRef.current?.setLayout([100, 0]);
+      } else {
+        horizontalPanelRef.current?.setLayout([40, 60]);
+        verticalPanelRef.current?.setLayout([70, 30]);
+      }
       if (id && PROBLEMS[id]) {
         setCurrentProblemId(id);
         setCode(PROBLEMS[id].starterCode[selectedLanguage]);
@@ -33,7 +41,10 @@ function ProblemPage() {
       }
     }
     callUseEffect();
-  }, [id, selectedLanguage]);
+  }, [id, selectedLanguage, isMax]);
+  const toggleIsMax = () => {
+    setIsMax(!isMax);
+  };
 
   const handleLanguageChange = (e) => {
     const newLang = e.target.value;
@@ -82,6 +93,8 @@ function ProblemPage() {
       const parsedExpected = cleanExpected
         .split("\n")
         .map((line) => JSON.parse(line));
+      console.log("expected", typeof expectedOutput);
+      console.log("parsed output", typeof parsedActual);
 
       return JSON.stringify(parsedActual) === JSON.stringify(parsedExpected);
     } catch {
@@ -115,14 +128,24 @@ function ProblemPage() {
       toast.error("Tests failed. Check your output!");
     }
   };
-
+  const horizontalPanelRef = useRef(null);
+  const verticalPanelRef = useRef(null);
   return (
     <div className="h-screen flex flex-col bg-base-100 overflow-hidden">
       <Navbar />
 
       <div className="flex-1 overflow-hidden">
-        <PanelGroup direction="horizontal" className="h-full">
-          <Panel defaultSize={40} minSize={30} className="flex overflow-hidden">
+        <PanelGroup
+          ref={horizontalPanelRef}
+          direction="horizontal"
+          className="h-full"
+        >
+          <Panel
+            defaultSize={40}
+            minSize={30}
+            collapsible
+            className="flex overflow-hidden"
+          >
             <ProblemDescription
               problem={currentProblem}
               currentProblemId={currentProblemId}
@@ -131,16 +154,22 @@ function ProblemPage() {
             />
           </Panel>
 
-          <PanelResizeHandle className="relative w-2 bg-base-300 hover:bg-primary transition-colors cursor-col-resize flex items-center justify-center">
-            <div className="flex flex-col gap-1">
-              <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
-              <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
-              <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
-            </div>
-          </PanelResizeHandle>
+          {!isMax && (
+            <PanelResizeHandle className="relative w-2 bg-base-300 hover:bg-primary transition-colors cursor-col-resize flex items-center justify-center">
+              <div className="flex flex-col gap-1">
+                <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
+                <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
+                <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
+              </div>
+            </PanelResizeHandle>
+          )}
 
           <Panel defaultSize={60} minSize={30} className="flex overflow-hidden">
-            <PanelGroup direction="vertical" className="h-full">
+            <PanelGroup
+              ref={verticalPanelRef}
+              direction="vertical"
+              className="h-full"
+            >
               <Panel defaultSize={70} minSize={30} className="flex flex-col">
                 <CodeEditorPanel
                   selectedLanguage={selectedLanguage}
@@ -149,18 +178,27 @@ function ProblemPage() {
                   onLanguageChange={handleLanguageChange}
                   onCodeChange={setCode}
                   onRunCode={handleRunCode}
+                  isMax={isMax}
+                  toggleIsMax={toggleIsMax}
                 />
               </Panel>
 
-              <PanelResizeHandle className="relative h-2 bg-base-300 hover:bg-primary transition-colors cursor-row-resize flex items-center justify-center">
-                <div className="flex gap-1">
-                  <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
-                  <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
-                  <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
-                </div>
-              </PanelResizeHandle>
+              {!isMax && (
+                <PanelResizeHandle className="relative h-2 bg-base-300 hover:bg-primary transition-colors cursor-row-resize flex items-center justify-center">
+                  <div className="flex gap-1">
+                    <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
+                    <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
+                    <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
+                  </div>
+                </PanelResizeHandle>
+              )}
 
-              <Panel defaultSize={30} minSize={20} className="flex bg-base-300">
+              <Panel
+                defaultSize={30}
+                minSize={20}
+                collapsible
+                className="flex bg-base-300"
+              >
                 <OutputPanel output={output} />
               </Panel>
             </PanelGroup>

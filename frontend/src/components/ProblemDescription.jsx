@@ -57,18 +57,28 @@ function ProblemDescription({
           {problem.examples.map((example, idx) => (
             <div
               key={idx}
-              className="bg-base-200 p-5 rounded-xl border border-base-300 shadow-sm mb-5"
+              className="bg-base-200 px-5 py-3 rounded-xl border border-base-300 shadow-sm mb-5"
             >
-              <div className="font-semibold mb-3">Example {idx + 1}</div>
+              <div className="font-semibold mb-2 font-md ">
+                Example : {idx + 1}
+              </div>
 
-              <div className="font-mono text-sm space-y-2">
+              <div className="font-mono text-sm space-y-1">
                 <div>
                   <span className="font-semibold">Input:</span> {example.input}
                 </div>
                 <div>
-                  <span className="font-semibold">Output:</span>{" "}
+                  <span className="font-semibold">Output:</span>
                   {example.output}
                 </div>
+                {example.explanation && (
+                  <div className="border-t border-base-content/10 mt-2 py-1">
+                    <span className="text-base-content/70 font-sans text-xs">
+                      <span className="font-semibold">Explanation:</span>{" "}
+                      {example.explanation}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           ))}

@@ -1,5 +1,5 @@
 import Editor from "@monaco-editor/react";
-import { Loader2Icon, PlayIcon } from "lucide-react";
+import { Loader2Icon, PlayIcon, Maximize, Minimize } from "lucide-react";
 import { LANGUAGE_CONFIG } from "../data/problems";
 import { useEffect, useState } from "react";
 
@@ -10,6 +10,8 @@ function CodeEditorPanel({
   onLanguageChange,
   onCodeChange,
   onRunCode,
+  isMax,
+  toggleIsMax,
 }) {
   const [editorTheme, setEditorTheme] = useState("vs-dark");
 
@@ -66,24 +68,36 @@ function CodeEditorPanel({
           </select>
         </div>
 
-        {/* Run Button */}
-        <button
-          className="btn btn-primary btn-sm gap-2 shrink-0 whitespace-nowrap"
-          disabled={isRunning}
-          onClick={onRunCode}
-        >
-          {isRunning ? (
-            <>
-              <Loader2Icon className="size-4 animate-spin" />
-              <span className="hidden md:inline">Running...</span>
-            </>
-          ) : (
-            <>
-              <PlayIcon className="size-4" />
-              <span className="hidden md:inline">Run Code</span>
-            </>
-          )}
-        </button>
+        <div className="flex gap-6">
+          {/* Run Button */}
+          <button
+            className="btn btn-primary btn-sm gap-1.5 shrink-0 whitespace-nowrap hover:scale-105"
+            disabled={isRunning}
+            onClick={onRunCode}
+          >
+            {isRunning ? (
+              <>
+                <Loader2Icon className="size-4 text-primary animate-spin" />
+                <span className="text-primary hidden md:inline">
+                  Running...
+                </span>
+              </>
+            ) : (
+              <>
+                <PlayIcon className="size-4" />
+                <span className="hidden md:inline">Run Code</span>
+              </>
+            )}
+          </button>
+          <button
+            className="mr-2 text-primary shrink-0 hover:scale-110"
+            onClick={() => {
+              toggleIsMax();
+            }}
+          >
+            {isMax ? <Minimize /> : <Maximize />}
+          </button>
+        </div>
       </div>
 
       {/* 🔥 Monaco Editor */}
@@ -97,6 +111,9 @@ function CodeEditorPanel({
           options={{
             automaticLayout: true,
             minimap: { enabled: false },
+            fontSize: isMax ? 18 : 14,
+            lineHeight: 22,
+            mouseWheelZoom: true,
           }}
         />
       </div>
