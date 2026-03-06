@@ -12,7 +12,7 @@ const ProblemFilterDropdown = ({
       <div
         tabIndex={0}
         role="button"
-        className={`group flex items-center gap-2 px-2 py-1 rounded-lg
+        className={`group flex items-center gap-2 px-3 py-1.5 rounded-lg
         transition-all duration-200 hover:opacity-90 cursor-pointer
         ${name === "" ? "bg-primary text-primary-content" : "bg-secondary text-primary-content"}`}
       >
