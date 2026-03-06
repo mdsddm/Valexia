@@ -11,7 +11,7 @@ import HomePage from "./pages/HomePage.jsx";
 import ProblemsPage from "./pages/ProblemsPage.jsx";
 import ProblemPage from "./pages/ProblemPage.jsx";
 import { Toaster } from "react-hot-toast";
-import DashBoard from "./pages/DashBoard.jsx";
+import DashBoardPage from "./pages/DashBoardPage.jsx";
 import FullScreenLoader from "./components/FullScreenLoader.jsx";
 function App() {
   const { isSignedIn, isLoaded } = useUser();
@@ -27,7 +27,7 @@ function App() {
         />
         <Route
           path="/dashboard"
-          element={isSignedIn ? <DashBoard /> : <Navigate to={"/"} />}
+          element={isSignedIn ? <DashBoardPage /> : <Navigate to={"/"} />}
         />
         <Route
           path="/problems"
