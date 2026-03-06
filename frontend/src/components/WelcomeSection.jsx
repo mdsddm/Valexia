@@ -16,7 +16,11 @@ function WelcomeSection({ onCreateSession }) {
 
             <div className="flex flex-col">
               <h1 className="text-3xl md:text-4xl font-bold bg-linear-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-                Welcome back, {user?.firstName || "there"}!
+                Welcome back,{" "}
+                <span className="hidden lg:inline">
+                  {user?.firstName || "there"} {user?.lastName || ""}
+                </span>
+                !
               </h1>
 
               <p className="ml-1 text-base md:text-lg text-base-content/60">
