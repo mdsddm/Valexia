@@ -21,7 +21,9 @@ function ProblemPage() {
   const [code, setCode] = useState(PROBLEMS["two-sum"].starterCode.javascript);
   const [output, setOutput] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
-  const [isMax, setIsMax] = useState(false);
+  const [isMax, setIsMax] = useState(
+    localStorage.getItem("ifProblemMax") === true,
+  );
 
   const currentProblem = PROBLEMS[currentProblemId];
 
@@ -39,6 +41,7 @@ function ProblemPage() {
         setCode(PROBLEMS[id].starterCode[selectedLanguage]);
         setOutput(null);
       }
+      localStorage.setItem("ifProblemMax", isMax);
     }
     callUseEffect();
   }, [id, selectedLanguage, isMax]);
@@ -154,15 +157,17 @@ function ProblemPage() {
             />
           </Panel>
 
-          {!isMax && (
-            <PanelResizeHandle className="relative w-2 bg-base-300 hover:bg-primary transition-colors cursor-col-resize flex items-center justify-center">
-              <div className="flex flex-col gap-1">
-                <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
-                <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
-                <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
-              </div>
-            </PanelResizeHandle>
-          )}
+          <PanelResizeHandle
+            className={`relative w-2 transition-colors ${
+              isMax ? "opacity-0 pointer-events-none" : ""
+            } bg-base-300 hover:bg-primary cursor-row-resize flex items-center justify-center`}
+          >
+            <div className="flex flex-col gap-1">
+              <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
+              <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
+              <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
+            </div>
+          </PanelResizeHandle>
 
           <Panel defaultSize={60} minSize={30} className="flex overflow-hidden">
             <PanelGroup
@@ -183,15 +188,17 @@ function ProblemPage() {
                 />
               </Panel>
 
-              {!isMax && (
-                <PanelResizeHandle className="relative h-2 bg-base-300 hover:bg-primary transition-colors cursor-row-resize flex items-center justify-center">
-                  <div className="flex gap-1">
-                    <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
-                    <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
-                    <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
-                  </div>
-                </PanelResizeHandle>
-              )}
+              <PanelResizeHandle
+                className={`relative h-2 transition-colors ${
+                  isMax ? "opacity-0 pointer-events-none" : ""
+                } bg-base-300 hover:bg-primary cursor-row-resize flex items-center justify-center`}
+              >
+                <div className="flex gap-1">
+                  <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
+                  <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
+                  <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
+                </div>
+              </PanelResizeHandle>
 
               <Panel
                 defaultSize={30}

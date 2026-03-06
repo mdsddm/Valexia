@@ -1,5 +1,5 @@
 import { useUser } from "@clerk/clerk-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
   useEndSession,
@@ -53,7 +53,9 @@ function SessionPage() {
   const [code, setCode] = useState(
     problemData?.starterCode?.[selectedLanguage] || "",
   );
-  const [isMax, setIsMax] = useState(false);
+  const [isMax, setIsMax] = useState(
+    localStorage.getItem("ifSessionMax") === "true",
+  );
   const toggleIsMax = () => {
     setIsMax((prev) => !prev);
   };
@@ -87,12 +89,20 @@ function SessionPage() {
   // update code when problem loads or changes
   useEffect(() => {
     function callUseEffect() {
+      if (isMax) {
+        horizontalPanelRef.current?.setLayout([70, 30]);
+        verticalPanelRef.current?.setLayout([0, 100]);
+      } else {
+        horizontalPanelRef.current?.setLayout([50, 50]);
+        verticalPanelRef.current?.setLayout([50, 50]);
+      }
       if (problemData?.starterCode?.[selectedLanguage]) {
         setCode(problemData.starterCode[selectedLanguage]);
       }
+      localStorage.setItem("ifSessionMax", isMax);
     }
     callUseEffect();
-  }, [problemData, selectedLanguage]);
+  }, [isMax, problemData, selectedLanguage]);
 
   const handleLanguageChange = (e) => {
     const newLang = e.target.value;
@@ -124,18 +134,21 @@ function SessionPage() {
       });
     }
   };
+  const horizontalPanelRef = useRef(null);
+  const verticalPanelRef = useRef(null);
 
   return (
     <div className="h-screen bg-base-100 flex flex-col">
       <Navbar />
 
       <div className="flex-1">
-        <PanelGroup direction="horizontal">
+        <PanelGroup ref={horizontalPanelRef} direction="horizontal">
           {/* LEFT PANEL - CODE EDITOR & PROBLEM DETAILS */}
           <Panel defaultSize={50} minSize={30}>
-            <PanelGroup direction="vertical">
+            <PanelGroup ref={verticalPanelRef} direction="vertical">
               {/* PROBLEM DSC PANEL */}
-              <Panel defaultSize={50} minSize={20}>
+
+              <Panel defaultSize={50} minSize={isMax ? 0 : 20}>
                 <div className="h-full overflow-y-auto bg-base-200">
                   {/* HEADER SECTION */}
                   <div className="p-6 bg-base-100 border-b border-base-300">
@@ -277,9 +290,19 @@ function SessionPage() {
                 </div>
               </Panel>
 
-              <PanelResizeHandle className="h-2 bg-base-300 hover:bg-primary transition-colors cursor-row-resize" />
+              <PanelResizeHandle
+                className={`relative h-2 transition-colors ${
+                  isMax ? "opacity-0 pointer-events-none" : ""
+                } bg-base-300 hover:bg-primary cursor-row-resize flex items-center justify-center`}
+              >
+                <div className="flex gap-1">
+                  <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
+                  <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
+                  <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
+                </div>
+              </PanelResizeHandle>
 
-              <Panel defaultSize={50} minSize={20}>
+              <Panel defaultSize={isMax ? 70 : 50} minSize={20}>
                 <PanelGroup direction="vertical">
                   <Panel defaultSize={70} minSize={30}>
                     <CodeEditorPanel
@@ -293,8 +316,13 @@ function SessionPage() {
                       toggleIsMax={toggleIsMax}
                     />
                   </Panel>
-
-                  <PanelResizeHandle className="h-2 bg-base-300 hover:bg-primary transition-colors cursor-row-resize" />
+                  <PanelResizeHandle className="relative h-2 bg-base-300 hover:bg-primary transition-colors cursor-row-resize flex items-center justify-center">
+                    <div className="flex gap-1">
+                      <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
+                      <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
+                      <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
+                    </div>
+                  </PanelResizeHandle>
 
                   <Panel defaultSize={30} minSize={15}>
                     <OutputPanel output={output} />
@@ -304,10 +332,16 @@ function SessionPage() {
             </PanelGroup>
           </Panel>
 
-          <PanelResizeHandle className="w-2 bg-base-300 hover:bg-primary transition-colors cursor-col-resize" />
+          <PanelResizeHandle className="relative w-2 bg-base-300 hover:bg-primary transition-colors cursor-col-resize flex items-center justify-center">
+            <div className="flex flex-col gap-1">
+              <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
+              <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
+              <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
+            </div>
+          </PanelResizeHandle>
 
           {/* RIGHT PANEL - VIDEO CALLS & CHAT */}
-          <Panel defaultSize={50} minSize={30}>
+          <Panel defaultSize={50} minSize={20}>
             <div className="h-full bg-base-200 p-4 overflow-auto">
               {isInitializingCall ? (
                 <div className="h-full flex items-center justify-center">

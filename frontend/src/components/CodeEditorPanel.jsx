@@ -41,11 +41,11 @@ function CodeEditorPanel({
   }, []);
 
   return (
-    <div className="flex flex-col flex-1 bg-base-300">
+    <div className="flex flex-col flex-1 min-h-0 bg-base-300">
       {/* 🔥 Toolbar */}
       <div
         className="px-4 py-3 bg-base-100 border-b border-base-300
-                flex items-center gap-3 overflow-hidden rounded"
+                flex items-center gap-3  rounded"
       >
         {/* Left Side (Icon + Select) */}
         <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -101,27 +101,34 @@ function CodeEditorPanel({
       </div>
 
       {/* 🔥 Monaco Editor */}
-      <div className="flex-1 overflow-hidden rounded-b-2xl">
-        <Editor
-          key={isMax ? "max" : "normal"}
-          height="100%"
-          language={
-            LANGUAGE_CONFIG[selectedLanguage]?.monacoLang || selectedLanguage
-          }
-          value={code}
-          onChange={(value) => onCodeChange(value ?? "")}
-          theme={editorTheme}
-          onMount={(editor) => {
-            setTimeout(() => editor.layout(), 0);
-          }}
-          options={{
-            automaticLayout: true,
-            minimap: { enabled: false },
-            fontSize: isMax ? 18 : 14,
-            lineHeight: 22,
-            mouseWheelZoom: true,
-          }}
-        />
+      <div className="flex-1 min-h-0 overflow-hidden rounded-b-2xl flex items-center justify-center">
+        {code ? (
+          <Editor
+            key={isMax ? "max" : "normal"}
+            height="100%"
+            language={
+              LANGUAGE_CONFIG[selectedLanguage]?.monacoLang || selectedLanguage
+            }
+            value={code}
+            onChange={(value) => onCodeChange(value ?? "")}
+            theme={editorTheme}
+            onMount={(editor) => {
+              requestAnimationFrame(() => editor.layout());
+            }}
+            options={{
+              automaticLayout: true,
+              minimap: { enabled: false },
+              fontSize: isMax ? 18 : 14,
+              lineHeight: 22,
+              mouseWheelZoom: true,
+            }}
+          />
+        ) : (
+          <div className="flex flex-col items-center gap-3 text-base-content/60">
+            <Loader2Icon className="w-6 h-6 animate-spin" />
+            <p className="text-sm">Loading starter code...</p>
+          </div>
+        )}
       </div>
     </div>
   );
