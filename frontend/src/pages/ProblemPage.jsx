@@ -43,7 +43,7 @@ function ProblemPage() {
     callUseEffect();
   }, [id, selectedLanguage, isMax]);
   const toggleIsMax = () => {
-    setIsMax(!isMax);
+    setIsMax((prev) => !prev);
   };
 
   const handleLanguageChange = (e) => {
