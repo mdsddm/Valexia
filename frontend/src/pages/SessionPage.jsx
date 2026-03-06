@@ -42,9 +42,11 @@ function SessionPage() {
   const { call, channel, chatClient, isInitializingCall, streamClient } =
     useStreamClient(session, loadingSession, isHost, isParticipant);
 
-  // find the problem data based on session problem title
+  // find the problem data based on session problem title or id
   const problemData = session?.problem
-    ? Object.values(PROBLEMS).find((p) => p.title === session.problem)
+    ? Object.values(PROBLEMS).find(
+        (p) => p.title === session.problem || p.id === session.problem,
+      )
     : null;
 
   const [selectedLanguage, setSelectedLanguage] = useState("javascript");

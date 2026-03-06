@@ -50,8 +50,8 @@ function CodeEditorPanel({
         {/* Left Side (Icon + Select) */}
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <img
-            src={LANGUAGE_CONFIG[selectedLanguage].icon}
-            alt={LANGUAGE_CONFIG[selectedLanguage].name}
+            src={LANGUAGE_CONFIG[selectedLanguage]?.icon}
+            alt={LANGUAGE_CONFIG[selectedLanguage]?.name || selectedLanguage}
             className="size-6 shrink-0"
           />
 
@@ -105,9 +105,11 @@ function CodeEditorPanel({
         <Editor
           key={isMax ? "max" : "normal"}
           height="100%"
-          language={LANGUAGE_CONFIG[selectedLanguage].monacoLang}
+          language={
+            LANGUAGE_CONFIG[selectedLanguage]?.monacoLang || selectedLanguage
+          }
           value={code}
-          onChange={onCodeChange}
+          onChange={(value) => onCodeChange(value ?? "")}
           theme={editorTheme}
           onMount={(editor) => {
             setTimeout(() => editor.layout(), 0);
