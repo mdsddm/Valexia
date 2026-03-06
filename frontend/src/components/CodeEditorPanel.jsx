@@ -45,8 +45,8 @@ function CodeEditorPanel({
     <div className="flex flex-col flex-1 min-h-0 bg-base-300">
       {/* 🔥 Toolbar */}
       <div
-        className="px-4 py-3 bg-base-100 border-b border-base-300
-                flex items-center gap-3  rounded"
+        className="px-4 py-3 bg-base-100  border-base-300
+                flex items-center gap-3"
       >
         {/* Left Side (Icon + Select) */}
         <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -102,7 +102,7 @@ function CodeEditorPanel({
       </div>
 
       {/* 🔥 Monaco Editor */}
-      <div className="flex-1 min-h-0 overflow-hidden rounded-b-2xl flex items-center justify-center">
+      <div className="flex-1 min-h-0 overflow-hidden">
         {code ? (
           <Editor
             key={`${selectedLanguage}-${isMax}`}

@@ -2,7 +2,7 @@ function OutputPanel({ output }) {
   const isError = output?.error;
 
   return (
-    <div className="flex flex-col flex-1 bg-base-100 rounded-2xl shadow-md overflow-hidden border border-base-300">
+    <div className="flex flex-col flex-1 bg-base-100  shadow-md border border-base-300">
       {/* Header */}
       <div className="px-6 py-4 bg-base-100 border-b border-base-300 font-semibold text-base-content">
         Output
