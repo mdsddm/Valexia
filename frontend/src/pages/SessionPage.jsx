@@ -136,6 +136,7 @@ function SessionPage() {
   };
   const horizontalPanelRef = useRef(null);
   const verticalPanelRef = useRef(null);
+  console.log("EDITOR CODE:", code);
 
   return (
     <div className="h-screen bg-base-100 flex flex-col">
@@ -368,7 +369,11 @@ function SessionPage() {
                 <div className="h-full">
                   <StreamVideo client={streamClient}>
                     <StreamCall call={call}>
-                      <VideoCallUI chatClient={chatClient} channel={channel} />
+                      <VideoCallUI
+                        chatClient={chatClient}
+                        channel={channel}
+                        isMax={isMax}
+                      />
                     </StreamCall>
                   </StreamVideo>
                 </div>
