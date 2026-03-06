@@ -29,15 +29,12 @@ function CodeEditorPanel({
   };
 
   useEffect(() => {
-    function callUseEffect() {
-      updateEditorTheme();
-      window.addEventListener("theme-change", updateEditorTheme);
+    updateEditorTheme();
+    window.addEventListener("theme-change", updateEditorTheme);
 
-      return () => {
-        window.removeEventListener("theme-change", updateEditorTheme);
-      };
-    }
-    callUseEffect();
+    return () => {
+      window.removeEventListener("theme-change", updateEditorTheme);
+    };
   }, []);
 
   return (
@@ -103,11 +100,15 @@ function CodeEditorPanel({
       {/* 🔥 Monaco Editor */}
       <div className="flex-1 overflow-hidden rounded-b-2xl">
         <Editor
+          key={isMax ? "max" : "normal"}
           height="100%"
           language={LANGUAGE_CONFIG[selectedLanguage].monacoLang}
           value={code}
           onChange={onCodeChange}
           theme={editorTheme}
+          onMount={(editor) => {
+            setTimeout(() => editor.layout(), 0);
+          }}
           options={{
             automaticLayout: true,
             minimap: { enabled: false },
