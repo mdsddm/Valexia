@@ -37,8 +37,9 @@ function CodeEditorPanel({
         window.removeEventListener("theme-change", updateEditorTheme);
       };
     }
+    window.dispatchEvent(new Event("resize"));
     callUseEffect();
-  }, []);
+  }, [code, isMax]);
 
   return (
     <div className="flex flex-col flex-1 min-h-0 bg-base-300">
@@ -104,7 +105,7 @@ function CodeEditorPanel({
       <div className="flex-1 min-h-0 overflow-hidden rounded-b-2xl flex items-center justify-center">
         {code ? (
           <Editor
-            key={isMax ? "max" : "normal"}
+            key={`${selectedLanguage}-${isMax}`}
             height="100%"
             language={
               LANGUAGE_CONFIG[selectedLanguage]?.monacoLang || selectedLanguage

@@ -136,13 +136,12 @@ function SessionPage() {
   };
   const horizontalPanelRef = useRef(null);
   const verticalPanelRef = useRef(null);
-  console.log("EDITOR CODE:", code);
 
   return (
     <div className="h-screen bg-base-100 flex flex-col">
       <Navbar />
 
-      <div className="flex-1">
+      <div className="flex-1 min-h-0">
         <PanelGroup ref={horizontalPanelRef} direction="horizontal">
           {/* LEFT PANEL - CODE EDITOR & PROBLEM DETAILS */}
           <Panel defaultSize={50} minSize={30}>
@@ -303,8 +302,8 @@ function SessionPage() {
                 </div>
               </PanelResizeHandle>
 
-              <Panel defaultSize={isMax ? 70 : 50} minSize={20}>
-                <PanelGroup direction="vertical">
+              <Panel defaultSize={70} minSize={10} className="min-h-0">
+                <PanelGroup direction="vertical" className="min-h-0">
                   <Panel defaultSize={70} minSize={30}>
                     <CodeEditorPanel
                       selectedLanguage={selectedLanguage}
