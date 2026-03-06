@@ -29,12 +29,15 @@ function CodeEditorPanel({
   };
 
   useEffect(() => {
-    updateEditorTheme();
-    window.addEventListener("theme-change", updateEditorTheme);
+    function callUseEffect() {
+      updateEditorTheme();
+      window.addEventListener("theme-change", updateEditorTheme);
 
-    return () => {
-      window.removeEventListener("theme-change", updateEditorTheme);
-    };
+      return () => {
+        window.removeEventListener("theme-change", updateEditorTheme);
+      };
+    }
+    callUseEffect();
   }, []);
 
   return (
