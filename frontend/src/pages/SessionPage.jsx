@@ -302,19 +302,21 @@ function SessionPage() {
                 </div>
               </PanelResizeHandle>
 
-              <Panel defaultSize={70} minSize={10} className="min-h-0">
-                <PanelGroup direction="vertical" className="min-h-0">
+              <Panel defaultSize={70} minSize={10}>
+                <PanelGroup direction="vertical">
                   <Panel defaultSize={70} minSize={30}>
-                    <CodeEditorPanel
-                      selectedLanguage={selectedLanguage}
-                      code={code}
-                      isRunning={isRunning}
-                      onLanguageChange={handleLanguageChange}
-                      onCodeChange={(value) => setCode(value)}
-                      onRunCode={handleRunCode}
-                      isMax={isMax}
-                      toggleIsMax={toggleIsMax}
-                    />
+                    <div className="h-full w-full">
+                      <CodeEditorPanel
+                        selectedLanguage={selectedLanguage}
+                        code={code}
+                        isRunning={isRunning}
+                        onLanguageChange={handleLanguageChange}
+                        onCodeChange={(value) => setCode(value)}
+                        onRunCode={handleRunCode}
+                        isMax={isMax}
+                        toggleIsMax={toggleIsMax}
+                      />
+                    </div>
                   </Panel>
                   <PanelResizeHandle className="relative h-2 bg-base-300 hover:bg-primary transition-colors cursor-row-resize flex items-center justify-center">
                     <div className="flex gap-1">

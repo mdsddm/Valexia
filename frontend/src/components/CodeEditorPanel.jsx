@@ -37,12 +37,11 @@ function CodeEditorPanel({
         window.removeEventListener("theme-change", updateEditorTheme);
       };
     }
-    window.dispatchEvent(new Event("resize"));
     callUseEffect();
   }, [code, isMax]);
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 bg-base-300">
+    <div className="flex flex-col flex-1 min-h-0 bg-base-300 w-full h-full">
       {/* 🔥 Toolbar */}
       <div
         className="px-4 py-3 bg-base-100  border-base-300
