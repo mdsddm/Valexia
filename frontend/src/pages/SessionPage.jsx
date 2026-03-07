@@ -302,7 +302,7 @@ function SessionPage() {
                 </div>
               </PanelResizeHandle>
 
-              <Panel defaultSize={70} minSize={10}>
+              <Panel defaultSize={70} minSize={10} className="bg-red-500">
                 <PanelGroup direction="vertical">
                   <Panel defaultSize={70} minSize={30}>
                     <div className="h-full w-full">
@@ -326,7 +326,7 @@ function SessionPage() {
                     </div>
                   </PanelResizeHandle>
 
-                  <Panel defaultSize={30} minSize={15}>
+                  <Panel defaultSize={isMax ? 35 : 30} minSize={15}>
                     <OutputPanel output={output} />
                   </Panel>
                 </PanelGroup>
