@@ -120,7 +120,7 @@ function SessionPage() {
     const result = await executeCode(selectedLanguage, code);
     setIsRunning(false);
     if (!result.success) {
-      toast.error(result.error || "Code execution failed!");
+      toast.error("Code execution failed!");
       return;
     } else {
       toast.success("Code executed successfully!");
