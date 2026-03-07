@@ -1,6 +1,7 @@
 import { useUser } from "@clerk/clerk-react";
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router";
+import toast from "react-hot-toast";
 import {
   useEndSession,
   useJoinSession,
@@ -115,11 +116,17 @@ function SessionPage() {
 
   const handleRunCode = async () => {
     setIsRunning(true);
-    setOutput(null);
 
     const result = await executeCode(selectedLanguage, code);
-    setOutput(result);
     setIsRunning(false);
+    if (!result.success) {
+      toast.error(result.error || "Code execution failed!");
+      return;
+    } else {
+      toast.success("Code executed successfully!");
+      setOutput(result);
+      return;
+    }
   };
 
   const handleEndSession = () => {
