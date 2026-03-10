@@ -314,6 +314,7 @@ function SessionPage() {
                   <Panel defaultSize={70} minSize={30}>
                     <div className="h-full w-full">
                       <CodeEditorPanel
+                        sessionId={id}
                         selectedLanguage={selectedLanguage}
                         code={code}
                         isRunning={isRunning}

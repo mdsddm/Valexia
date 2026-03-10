@@ -2,8 +2,9 @@ import Editor from "@monaco-editor/react";
 import { Loader2Icon, PlayIcon, Maximize, Minimize } from "lucide-react";
 import { LANGUAGE_CONFIG } from "../data/problems";
 import { useEffect, useState } from "react";
-
+import { socket } from "../lib/socket";
 function CodeEditorPanel({
+  sessionId,
   selectedLanguage,
   code,
   isRunning,
@@ -39,6 +40,19 @@ function CodeEditorPanel({
     }
     callUseEffect();
   }, [code, isMax]);
+  useEffect(() => {
+    if (!sessionId) return;
+
+    socket.emit("join-session", sessionId);
+
+    socket.on("code-update", (newCode) => {
+      onCodeChange(newCode);
+    });
+
+    return () => {
+      socket.off("code-update");
+    };
+  }, [onCodeChange, sessionId]);
 
   return (
     <div className="flex flex-col flex-1 min-h-0 bg-base-300 w-full h-full">
@@ -110,7 +124,15 @@ function CodeEditorPanel({
               LANGUAGE_CONFIG[selectedLanguage]?.monacoLang || selectedLanguage
             }
             value={code}
-            onChange={(value) => onCodeChange(value ?? "")}
+            onChange={(value) => {
+              const updated = value ?? "";
+              onCodeChange(updated);
+
+              socket.emit("code-change", {
+                sessionId,
+                code: updated,
+              });
+            }}
             theme={editorTheme}
             onMount={(editor) => {
               requestAnimationFrame(() => editor.layout());
