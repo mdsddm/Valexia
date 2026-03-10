@@ -69,7 +69,7 @@ function SessionPage() {
   const horizontalPanelRef = useRef(null);
   const verticalPanelRef = useRef(null);
 
-  /* ---------------- JOIN SESSION ---------------- */
+  /* JOIN SESSION */
 
   useEffect(() => {
     if (!session || !user || loadingSession) return;
@@ -79,15 +79,19 @@ function SessionPage() {
 
     hasJoined.current = true;
 
-    joinSessionMutation.mutate(
-      { id },
-      {
-        onSuccess: refetch,
-      },
-    );
-  }, [session, user, loadingSession, isHost, isParticipant, id, joinSessionMutation, refetch]);
+    joinSessionMutation.mutate({ id }, { onSuccess: refetch });
+  }, [
+    session,
+    user,
+    loadingSession,
+    isHost,
+    isParticipant,
+    id,
+    joinSessionMutation,
+    refetch,
+  ]);
 
-  /* ---------------- REDIRECT IF SESSION ENDED ---------------- */
+  /* REDIRECT IF SESSION ENDED */
 
   useEffect(() => {
     if (!session || loadingSession) return;
@@ -97,7 +101,7 @@ function SessionPage() {
     }
   }, [session, loadingSession, navigate]);
 
-  /* ---------------- INITIALIZE STARTER CODE ---------------- */
+  /* INITIALIZE STARTER CODE */
 
   useEffect(() => {
     function callUseEffect() {
@@ -105,7 +109,6 @@ function SessionPage() {
       if (hasInitializedCode.current) return;
 
       const starter = problemData?.starterCode?.[selectedLanguage] || "";
-
       setCode(starter);
 
       hasInitializedCode.current = true;
@@ -113,7 +116,7 @@ function SessionPage() {
     callUseEffect();
   }, [problemData, selectedLanguage]);
 
-  /* ---------------- PANEL LAYOUT ---------------- */
+  /* PANEL LAYOUT */
 
   useEffect(() => {
     if (isMax) {
@@ -127,7 +130,7 @@ function SessionPage() {
     localStorage.setItem("ifSessionMax", isMax);
   }, [isMax]);
 
-  /* ---------------- LANGUAGE CHANGE ---------------- */
+  /* LANGUAGE CHANGE */
 
   const handleLanguageChange = (e) => {
     const newLang = e.target.value;
@@ -135,12 +138,11 @@ function SessionPage() {
     setSelectedLanguage(newLang);
 
     const starter = problemData?.starterCode?.[newLang] || "";
-
     setCode(starter);
     setOutput(null);
   };
 
-  /* ---------------- RUN CODE ---------------- */
+  /* RUN CODE */
 
   const handleRunCode = async () => {
     setIsRunning(true);
@@ -158,7 +160,7 @@ function SessionPage() {
     setOutput(result);
   };
 
-  /* ---------------- END SESSION ---------------- */
+  /* END SESSION */
 
   const handleEndSession = () => {
     if (
@@ -172,8 +174,6 @@ function SessionPage() {
     }
   };
 
-  /* ---------------- UI ---------------- */
-
   return (
     <div className="h-screen bg-base-100 flex flex-col">
       <Navbar />
@@ -183,9 +183,10 @@ function SessionPage() {
           {/* LEFT SIDE */}
           <Panel defaultSize={50} minSize={30}>
             <PanelGroup ref={verticalPanelRef} direction="vertical">
-              {/* PROBLEM DESCRIPTION */}
+              {/* PROBLEM SECTION */}
               <Panel defaultSize={50} minSize={isMax ? 0 : 20}>
                 <div className="h-full overflow-y-auto bg-base-200">
+                  {/* HEADER */}
                   <div className="p-6 bg-base-100 border-b border-base-300">
                     <div className="flex items-start justify-between mb-3">
                       <div>
@@ -239,8 +240,9 @@ function SessionPage() {
                     </div>
                   </div>
 
-                  {/* DESCRIPTION CONTENT */}
+                  {/* PROBLEM CONTENT */}
                   <div className="p-6 space-y-6">
+                    {/* DESCRIPTION */}
                     {problemData?.description && (
                       <div className="bg-base-100 rounded-xl shadow-sm p-5 border border-base-300">
                         <h2 className="text-xl font-bold mb-4">Description</h2>
@@ -248,6 +250,61 @@ function SessionPage() {
                         <p className="text-base-content/90">
                           {problemData.description.text}
                         </p>
+
+                        {problemData.description.notes?.map((note, idx) => (
+                          <p key={idx} className="text-base-content/90 mt-2">
+                            {note}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* EXAMPLES / TEST CASES */}
+                    {problemData?.examples?.length > 0 && (
+                      <div className="bg-base-100 rounded-xl shadow-sm p-5 border border-base-300">
+                        <h2 className="text-xl font-bold mb-4">Examples</h2>
+
+                        {problemData.examples.map((example, idx) => (
+                          <div key={idx} className="mb-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="badge badge-sm">{idx + 1}</span>
+                              <p className="font-semibold">Example {idx + 1}</p>
+                            </div>
+
+                            <div className="bg-base-200 rounded-lg p-4 font-mono text-sm">
+                              <div>
+                                <strong>Input:</strong> {example.input}
+                              </div>
+
+                              <div>
+                                <strong>Output:</strong> {example.output}
+                              </div>
+
+                              {example.explanation && (
+                                <div className="mt-2 text-xs text-base-content/60">
+                                  <strong>Explanation:</strong>{" "}
+                                  {example.explanation}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* CONSTRAINTS */}
+                    {problemData?.constraints?.length > 0 && (
+                      <div className="bg-base-100 rounded-xl shadow-sm p-5 border border-base-300">
+                        <h2 className="text-xl font-bold mb-4">Constraints</h2>
+
+                        <ul className="space-y-2">
+                          {problemData.constraints.map((c, i) => (
+                            <li key={i} className="flex gap-2">
+                              <span>•</span>
+                              <code>{c}</code>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     )}
                   </div>
