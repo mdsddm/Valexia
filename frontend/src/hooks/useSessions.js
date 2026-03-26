@@ -1,70 +1,141 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { sessionApi } from "../api/sessions";
 
+/* =========================
+   CREATE SESSION
+========================= */
 export const useCreateSession = () => {
-  const result = useMutation({
-    mutationKey: ["createSession"],
-    mutationFn: sessionApi.createSession,
-    onSuccess: () => toast.success("Session created successfully!"),
-    onError: (error) =>
-      toast.error(error.response?.data?.message || "Failed to create room"),
-  });
+  const queryClient = useQueryClient();
 
-  return result;
+  return useMutation({
+    mutationKey: ["createSession"],
+
+    mutationFn: async (payload) => {
+      console.log("Sending payload:", payload);
+      const res = await sessionApi.createSession(payload);
+      return res.data;
+    },
+
+    onSuccess: (data) => {
+      toast.success("Session created successfully!");
+      queryClient.invalidateQueries({ queryKey: ["activeSessions"] });
+      queryClient.invalidateQueries({ queryKey: ["myRecentSessions"] });
+
+      console.log("Session created:", data);
+    },
+
+    onError: (error) => {
+      console.error("Create session error:", error);
+      toast.error(error.response?.data?.message || "Failed to create session");
+    },
+  });
 };
 
+/* =========================
+   ACTIVE SESSIONS
+========================= */
 export const useActiveSessions = () => {
-  const result = useQuery({
+  return useQuery({
     queryKey: ["activeSessions"],
     queryFn: sessionApi.getActiveSessions,
   });
-
-  return result;
 };
 
+/* =========================
+   RECENT SESSIONS
+========================= */
 export const useMyRecentSessions = () => {
-  const result = useQuery({
+  return useQuery({
     queryKey: ["myRecentSessions"],
     queryFn: sessionApi.getMyRecentSessions,
   });
-
-  return result;
 };
 
+/* =========================
+   SESSION BY ID
+========================= */
 export const useSessionById = (id) => {
-  const result = useQuery({
+  return useQuery({
     queryKey: ["session", id],
     queryFn: () => sessionApi.getSessionById(id),
     enabled: !!id,
-    refetchInterval: 5000, // refetch every 5 seconds to detect session status changes
+    refetchInterval: 5000,
   });
-
-  return result;
 };
 
+/* =========================
+   JOIN SESSION (FIXED 🔥)
+========================= */
 export const useJoinSession = () => {
-  const result = useMutation({
+  const queryClient = useQueryClient();
+
+  return useMutation({
     mutationKey: ["joinSession"],
-    mutationFn: ({ id }) => sessionApi.joinSession(id),
 
-    onSuccess: () => toast.success("Joined session successfully!"),
+    mutationFn: async (payload) => {
+      // payload = { sessionId, topics, password }
+      const res = await sessionApi.joinSession(payload);
+      return res.data;
+    },
 
-    onError: (error) =>
-      toast.error(error.response?.data?.message || "Failed to join session"),
+    onSuccess: () => {
+      toast.success("Joined session successfully!");
+      queryClient.invalidateQueries({ queryKey: ["activeSessions"] });
+    },
+
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to join session");
+    },
   });
-
-  return result;
 };
 
-export const useEndSession = () => {
-  const result = useMutation({
-    mutationKey: ["endSession"],
-    mutationFn: sessionApi.endSession,
-    onSuccess: () => toast.success("Session ended successfully!"),
-    onError: (error) =>
-      toast.error(error.response?.data?.message || "Failed to end session"),
-  });
+/* =========================
+   DELETE SESSION (NEW 🔥)
+========================= */
+export const useDeleteSession = () => {
+  const queryClient = useQueryClient();
 
-  return result;
+  return useMutation({
+    mutationKey: ["deleteSession"],
+
+    mutationFn: async (id) => {
+      const res = await sessionApi.deleteSession(id);
+      return res.data;
+    },
+
+    onSuccess: () => {
+      toast.success("Session deleted successfully!");
+
+      // ✅ refresh UI instantly
+      queryClient.invalidateQueries({ queryKey: ["activeSessions"] });
+      queryClient.invalidateQueries({ queryKey: ["myRecentSessions"] });
+    },
+
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to delete session");
+    },
+  });
+};
+
+/* =========================
+   END SESSION
+========================= */
+export const useEndSession = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: ["endSession"],
+
+    mutationFn: sessionApi.endSession,
+
+    onSuccess: () => {
+      toast.success("Session ended successfully!");
+      queryClient.invalidateQueries({ queryKey: ["activeSessions"] });
+    },
+
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to end session");
+    },
+  });
 };

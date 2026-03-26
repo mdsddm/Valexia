@@ -8,12 +8,8 @@ import {
   useSessionById,
 } from "../hooks/useSessions.js";
 
-import { PROBLEMS } from "../data/problems.js";
-import { executeCode } from "../lib/judge0.js";
-
 import Navbar from "../components/Navbar.jsx";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import { getDifficultyBadgeClass } from "../lib/utils";
 import { Loader2Icon, LogOutIcon, PhoneOffIcon } from "lucide-react";
 
 import CodeEditorPanel from "../components/CodeEditorPanel.jsx";
@@ -45,6 +41,8 @@ function SessionPage() {
   const isHost = session?.host?.clerkId === user?.id;
   const isParticipant = session?.participant?.clerkId === user?.id;
 
+  const hasParticipantJoined = !!session?.participant;
+
   const { call, channel, chatClient, isInitializingCall, streamClient } =
     useStreamClient(session, loadingSession, isHost, isParticipant);
 
@@ -69,8 +67,42 @@ function SessionPage() {
   const horizontalPanelRef = useRef(null);
   const verticalPanelRef = useRef(null);
 
-  /* JOIN SESSION */
+  /* LANGUAGE MAP (Judge0 IDs) */
+  const LANGUAGE_MAP = {
+    javascript: 63,
+    python: 71,
+    java: 62,
+    cpp: 54,
+  };
 
+  /* RUN CODE API */
+  const runCodeAPI = async () => {
+    try {
+      const res = await fetch("/api/code/run", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sessionId: id,
+          languageId: LANGUAGE_MAP[selectedLanguage],
+          code,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Execution failed");
+      }
+
+      return data;
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  /* JOIN SESSION */
   useEffect(() => {
     if (!session || !user || loadingSession) return;
     if (session.status !== "active") return;
@@ -91,8 +123,7 @@ function SessionPage() {
     refetch,
   ]);
 
-  /* REDIRECT IF SESSION ENDED */
-
+  /* REDIRECT IF ENDED */
   useEffect(() => {
     if (!session || loadingSession) return;
 
@@ -101,23 +132,18 @@ function SessionPage() {
     }
   }, [session, loadingSession, navigate]);
 
-  /* INITIALIZE STARTER CODE */
-
+  /* INITIALIZE CODE */
   useEffect(() => {
-    function callUseEffect() {
-      if (!problemData) return;
-      if (hasInitializedCode.current) return;
+    if (!problemData) return;
+    if (hasInitializedCode.current) return;
 
-      const starter = problemData?.starterCode?.[selectedLanguage] || "";
-      setCode(starter);
+    const starter = problemData?.starterCode?.[selectedLanguage] || "";
+    setCode(starter);
 
-      hasInitializedCode.current = true;
-    }
-    callUseEffect();
+    hasInitializedCode.current = true;
   }, [problemData, selectedLanguage]);
 
   /* PANEL LAYOUT */
-
   useEffect(() => {
     if (isMax) {
       horizontalPanelRef.current?.setLayout([70, 30]);
@@ -130,8 +156,18 @@ function SessionPage() {
     localStorage.setItem("ifSessionMax", isMax);
   }, [isMax]);
 
-  /* LANGUAGE CHANGE */
+  /* AUTO REFETCH (for host waiting) */
+  useEffect(() => {
+    if (!isHost) return;
 
+    const interval = setInterval(() => {
+      refetch();
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [isHost, refetch]);
+
+  /* LANGUAGE CHANGE */
   const handleLanguageChange = (e) => {
     const newLang = e.target.value;
 
@@ -143,36 +179,48 @@ function SessionPage() {
   };
 
   /* RUN CODE */
-
   const handleRunCode = async () => {
     setIsRunning(true);
 
-    const result = await executeCode(selectedLanguage, code);
+    const result = await runCodeAPI();
 
     setIsRunning(false);
 
     if (!result.success) {
-      toast.error("Code execution failed!");
+      toast.error(result.error || "Execution failed!");
       return;
     }
 
-    toast.success("Code executed successfully!");
+    toast.success("Code executed!");
     setOutput(result);
   };
 
   /* END SESSION */
-
   const handleEndSession = () => {
-    if (
-      confirm(
-        "Are you sure you want to end this session? All participants will be notified.",
-      )
-    ) {
+    if (confirm("End session for everyone?")) {
       endSessionMutation.mutate(id, {
         onSuccess: () => navigate("/dashboard"),
       });
     }
   };
+
+  /* 🚧 WAITING SCREEN */
+  if (isHost && !hasParticipantJoined) {
+    return (
+      <div className="h-screen flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <Loader2Icon className="w-12 h-12 animate-spin text-primary mx-auto" />
+            <h2 className="text-2xl font-semibold">Waiting for candidate...</h2>
+            <p className="text-base-content/60">
+              Share session ID: <strong>{id}</strong>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen bg-base-100 flex flex-col">
@@ -180,160 +228,38 @@ function SessionPage() {
 
       <div className="flex-1 min-h-0">
         <PanelGroup ref={horizontalPanelRef} direction="horizontal">
-          {/* LEFT SIDE */}
-          <Panel defaultSize={50} minSize={30}>
+          {/* LEFT */}
+          <Panel defaultSize={50}>
             <PanelGroup ref={verticalPanelRef} direction="vertical">
-              {/* PROBLEM SECTION */}
-              <Panel defaultSize={50} minSize={isMax ? 0 : 20}>
-                <div className="h-full overflow-y-auto bg-base-200">
-                  {/* HEADER */}
-                  <div className="p-6 bg-base-100 border-b border-base-300">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h1 className="text-3xl font-bold">
-                          {session?.problem || "Loading..."}
-                        </h1>
-
-                        {problemData?.category && (
-                          <p className="text-base-content/60 mt-1">
-                            {problemData.category}
-                          </p>
-                        )}
-
-                        <p className="text-base-content/60 mt-2">
-                          Host: {session?.host?.name || "Loading..."} •{" "}
-                          {session?.participant ? 2 : 1}/2 participants
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <span
-                          className={`badge badge-lg ${getDifficultyBadgeClass(
-                            session?.difficulty,
-                          )}`}
-                        >
-                          {session?.difficulty?.charAt(0).toUpperCase() +
-                            session?.difficulty?.slice(1)}
-                        </span>
-
-                        {isHost && session?.status === "active" && (
-                          <button
-                            onClick={handleEndSession}
-                            disabled={endSessionMutation.isPending}
-                            className="btn btn-error btn-sm gap-2"
-                          >
-                            {endSessionMutation.isPending ? (
-                              <Loader2Icon className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <LogOutIcon className="w-4 h-4" />
-                            )}
-                            End Session
-                          </button>
-                        )}
-
-                        {session?.status === "completed" && (
-                          <span className="badge badge-ghost badge-lg">
-                            Completed
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* PROBLEM CONTENT */}
-                  <div className="p-6 space-y-6">
-                    {/* DESCRIPTION */}
-                    {problemData?.description && (
-                      <div className="bg-base-100 rounded-xl shadow-sm p-5 border border-base-300">
-                        <h2 className="text-xl font-bold mb-4">Description</h2>
-
-                        <p className="text-base-content/90">
-                          {problemData.description.text}
-                        </p>
-
-                        {problemData.description.notes?.map((note, idx) => (
-                          <p key={idx} className="text-base-content/90 mt-2">
-                            {note}
-                          </p>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* EXAMPLES / TEST CASES */}
-                    {problemData?.examples?.length > 0 && (
-                      <div className="bg-base-100 rounded-xl shadow-sm p-5 border border-base-300">
-                        <h2 className="text-xl font-bold mb-4">Examples</h2>
-
-                        {problemData.examples.map((example, idx) => (
-                          <div key={idx} className="mb-4">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="badge badge-sm">{idx + 1}</span>
-                              <p className="font-semibold">Example {idx + 1}</p>
-                            </div>
-
-                            <div className="bg-base-200 rounded-lg p-4 font-mono text-sm">
-                              <div>
-                                <strong>Input:</strong> {example.input}
-                              </div>
-
-                              <div>
-                                <strong>Output:</strong> {example.output}
-                              </div>
-
-                              {example.explanation && (
-                                <div className="mt-2 text-xs text-base-content/60">
-                                  <strong>Explanation:</strong>{" "}
-                                  {example.explanation}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* CONSTRAINTS */}
-                    {problemData?.constraints?.length > 0 && (
-                      <div className="bg-base-100 rounded-xl shadow-sm p-5 border border-base-300">
-                        <h2 className="text-xl font-bold mb-4">Constraints</h2>
-
-                        <ul className="space-y-2">
-                          {problemData.constraints.map((c, i) => (
-                            <li key={i} className="flex gap-2">
-                              <span>•</span>
-                              <code>{c}</code>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
+              <Panel defaultSize={50}>
+                <div className="p-6">
+                  <h1 className="text-2xl font-bold">
+                    {session?.problem || "Select problem"}
+                  </h1>
                 </div>
               </Panel>
 
-              <PanelResizeHandle className="h-2 bg-base-300 hover:bg-primary cursor-row-resize" />
+              <PanelResizeHandle />
 
-              {/* EDITOR + OUTPUT */}
-
-              <Panel defaultSize={70} minSize={10}>
+              <Panel>
                 <PanelGroup direction="vertical">
-                  <Panel defaultSize={70} minSize={30}>
+                  <Panel>
                     <CodeEditorPanel
                       sessionId={id}
                       selectedLanguage={selectedLanguage}
                       code={code}
                       isRunning={isRunning}
                       onLanguageChange={handleLanguageChange}
-                      onCodeChange={(value) => setCode(value)}
+                      onCodeChange={(v) => setCode(v)}
                       onRunCode={handleRunCode}
                       isMax={isMax}
                       toggleIsMax={toggleIsMax}
                     />
                   </Panel>
 
-                  <PanelResizeHandle className="h-2 bg-base-300 hover:bg-primary cursor-row-resize" />
+                  <PanelResizeHandle />
 
-                  <Panel defaultSize={30} minSize={15}>
+                  <Panel>
                     <OutputPanel output={output} />
                   </Panel>
                 </PanelGroup>
@@ -341,20 +267,15 @@ function SessionPage() {
             </PanelGroup>
           </Panel>
 
-          <PanelResizeHandle className="w-2 bg-base-300 hover:bg-primary cursor-col-resize" />
+          <PanelResizeHandle />
 
-          {/* VIDEO CALL */}
-
-          <Panel defaultSize={50} minSize={20}>
-            <div className="h-full bg-base-200 p-4 overflow-auto">
+          {/* VIDEO */}
+          <Panel>
+            <div className="h-full flex items-center justify-center">
               {isInitializingCall ? (
-                <div className="h-full flex items-center justify-center">
-                  <Loader2Icon className="w-12 h-12 animate-spin text-primary" />
-                </div>
-              ) : !streamClient || !call ? (
-                <div className="h-full flex items-center justify-center">
-                  <PhoneOffIcon className="w-12 h-12 text-error" />
-                </div>
+                <Loader2Icon className="w-10 h-10 animate-spin" />
+              ) : !call ? (
+                <PhoneOffIcon className="w-10 h-10 text-error" />
               ) : (
                 <StreamVideo client={streamClient}>
                   <StreamCall call={call}>

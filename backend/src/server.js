@@ -10,7 +10,9 @@ import chatRoutes from "./routes/chatRoutes.js";
 import sessionRoute from "./routes/sessionRoute.js";
 import http from "http";
 import { Server } from "socket.io";
+import executeRoutes from "./routes/executeRoutes.js";
 
+import problemRoutes from "./routes/problemRoutes.js";
 const app = express();
 const server = http.createServer(app);
 
@@ -59,9 +61,11 @@ app.use(
   }),
 );
 
-app.use("/api/inngest", serve({ client: inngest, functions }));
-
 app.use("/api/chat", chatRoutes);
+app.use("/api/execute", executeRoutes);
+app.use("/api/inngest", serve({ client: inngest, functions }));
+app.use("/api/problems", problemRoutes);
+
 app.use("/api/sessions", sessionRoute);
 
 /* ---------------- HEALTH CHECK ---------------- */

@@ -29,14 +29,11 @@ const Problem = ({ problem }) => {
                 </span>
               </div>
 
-              <p className="text-xs text-base-content/60">{problem.category}</p>
+              <p className="text-xs text-base-content/60">
+                {problem.tags?.join(" • ")}
+              </p>
             </div>
           </div>
-
-          {/* DESCRIPTION */}
-          <p className="text-sm text-base-content/75 line-clamp-2 hover:text-base-content">
-            {problem.description?.text ?? ""}
-          </p>
         </div>
 
         {/* RIGHT SIDE */}

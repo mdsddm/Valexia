@@ -1,143 +1,166 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router";
-import { PROBLEMS } from "../data/problems";
 import Navbar from "../components/Navbar";
 
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import ProblemDescription from "../components/ProblemDescription";
 import OutputPanel from "../components/OutputPanel";
 import CodeEditorPanel from "../components/CodeEditorPanel";
-import { executeCode } from "../lib/judge0.js";
 
 import toast from "react-hot-toast";
 import confetti from "canvas-confetti";
+import FullScreenLoader from "../components/FullScreenLoader.jsx";
+
+const API = import.meta.env.VITE_API_URL;
 
 function ProblemPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [currentProblemId, setCurrentProblemId] = useState(id || "two-sum");
+  const [problems, setProblems] = useState([]);
+  const [currentProblem, setCurrentProblem] = useState(null);
+
   const [selectedLanguage, setSelectedLanguage] = useState("javascript");
-  const [code, setCode] = useState(PROBLEMS["two-sum"].starterCode.javascript);
+  const [code, setCode] = useState("");
   const [output, setOutput] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
   const [isMax, setIsMax] = useState(
-    localStorage.getItem("ifProblemMax") === true,
+    localStorage.getItem("ifProblemMax") === "true",
   );
 
-  const currentProblem = PROBLEMS[currentProblemId];
+  const horizontalPanelRef = useRef(null);
+  const verticalPanelRef = useRef(null);
 
+  // FETCH ALL PROBLEMS
   useEffect(() => {
-    function callUseEffect() {
-      if (isMax) {
-        horizontalPanelRef.current?.setLayout([0, 100]);
-        verticalPanelRef.current?.setLayout([100, 0]);
-      } else {
-        horizontalPanelRef.current?.setLayout([40, 60]);
-        verticalPanelRef.current?.setLayout([70, 30]);
+    const fetchProblems = async () => {
+      try {
+        const res = await fetch(`${API}/problems`);
+        const data = await res.json();
+        setProblems(data.problems);
+      } catch {
+        toast.error("Failed to load problems");
       }
-      if (id && PROBLEMS[id]) {
-        setCurrentProblemId(id);
-        setCode(PROBLEMS[id].starterCode[selectedLanguage]);
-        setOutput(null);
+    };
+
+    fetchProblems();
+  }, []);
+
+  // FETCH SINGLE PROBLEM
+  useEffect(() => {
+    const fetchProblem = async () => {
+      try {
+        const res = await fetch(`${API}/problems/${id}`);
+        const data = await res.json();
+        setCurrentProblem(data.problem);
+        const starter = data.problem.starterCode[selectedLanguage] || "";
+
+        setCode(starter);
+      } catch {
+        toast.error("Problem not found");
       }
-      localStorage.setItem("ifProblemMax", isMax);
+    };
+
+    if (id) fetchProblem();
+  }, [id, selectedLanguage]);
+
+  // PANEL LAYOUT
+  useEffect(() => {
+    if (!horizontalPanelRef.current || !verticalPanelRef.current) return;
+
+    if (isMax) {
+      horizontalPanelRef.current.setLayout([0, 100]);
+      verticalPanelRef.current.setLayout([100, 0]);
+    } else {
+      horizontalPanelRef.current.setLayout([40, 60]);
+      verticalPanelRef.current.setLayout([70, 30]);
     }
-    callUseEffect();
-  }, [id, selectedLanguage, isMax]);
-  const toggleIsMax = () => {
-    setIsMax((prev) => !prev);
-  };
+
+    localStorage.setItem("ifProblemMax", isMax);
+  }, [isMax]);
+
+  const toggleIsMax = () => setIsMax((prev) => !prev);
 
   const handleLanguageChange = (e) => {
-    const newLang = e.target.value;
-    setSelectedLanguage(newLang);
-    setCode(currentProblem.starterCode[newLang]);
+    const lang = e.target.value;
+    setSelectedLanguage(lang);
+
+    if (currentProblem) {
+      setCode(currentProblem.starterCode[lang] || "");
+    }
+
     setOutput(null);
   };
 
-  const handleProblemChange = (newProblemId) =>
-    navigate(`/problem/${newProblemId}`);
+  const handleProblemChange = (newId) => {
+    navigate(`/problem/${newId}`);
+  };
 
   const triggerConfetti = () => {
     confetti({ particleCount: 80, spread: 250, origin: { x: 0.2, y: 0.6 } });
     confetti({ particleCount: 80, spread: 250, origin: { x: 0.8, y: 0.6 } });
   };
 
-  // Clean normalization
-  const normalizeOutput = (text) => {
-    if (!text) return "";
-
-    return text
-      .trim()
-      .replace(/\r/g, "") // remove windows carriage returns
-      .split("\n")
-      .map((line) =>
-        line
-          .trim()
-          .replace(/\[\s+/g, "[")
-          .replace(/\s+\]/g, "]")
-          .replace(/\s*,\s*/g, ","),
-      )
-      .filter(Boolean)
-      .join("\n");
-  };
-
-  const checkIfTestsPassed = (actualOutput, expectedOutput) => {
-    try {
-      const cleanActual = actualOutput.trim();
-      const cleanExpected = expectedOutput.trim();
-
-      // Try JSON comparison first
-      const parsedActual = cleanActual
-        .split("\n")
-        .map((line) => JSON.parse(line.replace(/'/g, '"')));
-
-      const parsedExpected = cleanExpected
-        .split("\n")
-        .map((line) => JSON.parse(line));
-      console.log("expected", typeof expectedOutput);
-      console.log("parsed output", typeof parsedActual);
-
-      return JSON.stringify(parsedActual) === JSON.stringify(parsedExpected);
-    } catch {
-      // fallback to normalized string comparison
-      return normalizeOutput(actualOutput) === normalizeOutput(expectedOutput);
-    }
-  };
-
+  // RUN CODE
   const handleRunCode = async () => {
+    if (!currentProblem) return;
+
     setIsRunning(true);
     setOutput(null);
+    setIsSuccess(false);
 
-    const result = await executeCode(selectedLanguage, code);
+    try {
+      const res = await fetch(`${API}/execute`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          language: selectedLanguage,
+          code,
+          problemId: currentProblem._id,
+        }),
+      });
 
-    setOutput(result);
-    setIsRunning(false);
+      const result = await res.json();
 
-    if (!result.success) {
-      toast.error(result.error || "Code execution failed!");
-      return;
-    }
+      setOutput(result);
 
-    const expectedOutput = currentProblem.expectedOutput[selectedLanguage];
+      if (!result.success) {
+        toast.error(
+          result.error?.message
+            ? `${result.error.message}${
+                result.error.line ? ` (Line ${result.error.line})` : ""
+              }`
+            : "Execution failed",
+        );
+        return;
+      }
 
-    const testsPassed = checkIfTestsPassed(result.output, expectedOutput);
+      if (result.passed) {
+        setIsSuccess(true);
+        triggerConfetti();
 
-    if (testsPassed) {
-      triggerConfetti();
-      toast.success("All tests passed! Great job!");
-    } else {
-      toast.error("Tests failed. Check your output!");
+        toast.success("All tests passed!");
+      } else {
+        toast.error("Some tests failed");
+      }
+    } catch {
+      toast.error("Execution error");
+    } finally {
+      setIsRunning(false);
     }
   };
-  const horizontalPanelRef = useRef(null);
-  const verticalPanelRef = useRef(null);
+
+  if (!currentProblem) return <FullScreenLoader />;
+
   return (
     <div className="h-screen flex flex-col bg-base-100 overflow-hidden">
       <Navbar />
 
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden">
         <PanelGroup
           ref={horizontalPanelRef}
           direction="horizontal"
@@ -147,35 +170,27 @@ function ProblemPage() {
             defaultSize={40}
             minSize={30}
             collapsible
-            className="flex overflow-hidden"
+            className="flex flex-col min-h-0"
           >
             <ProblemDescription
               problem={currentProblem}
-              currentProblemId={currentProblemId}
+              currentProblemId={currentProblem._id}
               onProblemChange={handleProblemChange}
-              allProblems={Object.values(PROBLEMS)}
+              allProblems={problems}
             />
           </Panel>
 
-          <PanelResizeHandle
-            className={`relative w-2 transition-colors ${
-              isMax ? "opacity-0 pointer-events-none" : ""
-            } bg-base-300 hover:bg-primary cursor-row-resize flex items-center justify-center`}
-          >
-            <div className="flex flex-col gap-1">
-              <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
-              <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
-              <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
-            </div>
-          </PanelResizeHandle>
+          {!isMax && (
+            <PanelResizeHandle className="w-2 bg-base-300 hover:bg-primary" />
+          )}
 
-          <Panel defaultSize={60} minSize={30} className="flex overflow-hidden">
+          <Panel defaultSize={60} minSize={30}>
             <PanelGroup
               ref={verticalPanelRef}
               direction="vertical"
               className="h-full"
             >
-              <Panel defaultSize={70} minSize={30} className="flex flex-col">
+              <Panel defaultSize={70} minSize={30}>
                 <CodeEditorPanel
                   selectedLanguage={selectedLanguage}
                   code={code}
@@ -188,25 +203,10 @@ function ProblemPage() {
                 />
               </Panel>
 
-              <PanelResizeHandle
-                className={`relative h-2 transition-colors ${
-                  isMax ? "opacity-0 pointer-events-none" : ""
-                } bg-base-300 hover:bg-primary cursor-row-resize flex items-center justify-center`}
-              >
-                <div className="flex gap-1">
-                  <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
-                  <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
-                  <div className="w-0.75 h-0.75 bg-base-content rounded-full" />
-                </div>
-              </PanelResizeHandle>
+              <PanelResizeHandle className="h-2 bg-base-300 hover:bg-primary" />
 
-              <Panel
-                defaultSize={30}
-                minSize={20}
-                collapsible
-                className="flex bg-base-300"
-              >
-                <OutputPanel output={output} />
+              <Panel defaultSize={30} minSize={20}>
+                <OutputPanel output={output} isSuccess={isSuccess} />
               </Panel>
             </PanelGroup>
           </Panel>
