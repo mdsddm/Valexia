@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useAuth } from "@clerk/clerk-react";
 import Navbar from "../components/Navbar.jsx";
 import { Link } from "react-router";
 import Problem from "../components/Problem.jsx";
@@ -12,6 +13,7 @@ const API = import.meta.env.VITE_API_URL;
 const DIFFICULTY = ["easy", "medium", "hard"];
 
 const ProblemsPage = () => {
+  const { getToken } = useAuth();
   const [allProblems, setAllProblems] = useState([]);
   const [problems, setProblems] = useState([]);
 
@@ -26,12 +28,16 @@ const ProblemsPage = () => {
   useEffect(() => {
     const fetchProblems = async () => {
       try {
-        const res = await fetch(`${API}/problems`);
+        const token = await getToken();
+        const res = await fetch(`${API}/problems`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         const data = await res.json();
         setAllProblems(data.problems);
         setProblems(data.problems);
-        console.log(data.problems);
 
         // build filter lists from tags
         const tags = new Set();

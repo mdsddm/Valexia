@@ -15,6 +15,8 @@ export async function createSession(req, res) {
       duration = 30,
       password,
       available_topic,
+      topics,
+      name,
     } = req.body;
 
     const userId = req.user?._id;
@@ -24,50 +26,39 @@ export async function createSession(req, res) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    // ✅ validate topics
-    if (!available_topic || available_topic.length === 0) {
+    // ✅ support both fields
+    const finalTopics = available_topic || topics;
+
+    if (!finalTopics || finalTopics.length === 0) {
       return res.status(400).json({ message: "Topics required" });
     }
 
-    // ✅ validate scheduled session
     if (type === "scheduled" && !scheduledAt) {
       return res.status(400).json({ message: "scheduledAt required" });
     }
 
-    // 🎯 fetch problems
-    const problems = await Problem.aggregate([
-      { $sample: { size: Number(questionCount) } },
-    ]);
-
-    if (!problems.length) {
-      return res.status(404).json({ message: "No problems found" });
-    }
-
-    // 🔐 password hashing
     let hashedPassword = null;
     if (password?.trim()) {
       hashedPassword = await bcrypt.hash(password, 10);
     }
 
-    // 📞 unique callId
     const callId = `session_${Date.now()}_${Math.random()
       .toString(36)
       .substring(7)}`;
 
-    // 🧩 create session
     const session = await Session.create({
       host: userId,
-      problems: problems.map((p) => p._id),
-      scheduledAt: type === "scheduled" ? scheduledAt : null,
+      name: name || "Interview Session",
+      questionCount: Number(questionCount) || 2,
+      scheduledAt: type === "scheduled" ? new Date(scheduledAt) : null,
       duration,
       type,
       callId,
-      available_topic,
+      available_topic: finalTopics,
       password: hashedPassword,
     });
 
     try {
-      // 🎥 create video call
       await streamClient.video.call("default", callId).getOrCreate({
         data: {
           created_by_id: clerkId,
@@ -77,7 +68,6 @@ export async function createSession(req, res) {
         },
       });
 
-      // 💬 create chat
       const channel = chatClient.channel("messaging", callId, {
         name: "Interview Session",
         created_by_id: clerkId,
@@ -86,15 +76,23 @@ export async function createSession(req, res) {
 
       await channel.create();
     } catch (err) {
-      // 🔥 rollback if stream fails
+      console.log("❌ STREAM ERROR:", err);
+
       await Session.findByIdAndDelete(session._id);
-      throw err;
+
+      return res.status(500).json({
+        message: "Stream setup failed",
+        error: err.message,
+      });
     }
 
     return res.status(201).json({ session });
   } catch (error) {
-    console.log("createSession error:", error.message);
-    return res.status(500).json({ message: "Internal Server Error" });
+    console.log("❌ createSession error:", error);
+    return res.status(500).json({
+      message: "Internal Server Error",
+      error: error.message,
+    });
   }
 }
 
@@ -170,7 +168,7 @@ export async function getSessionById(req, res) {
 export async function joinSession(req, res) {
   try {
     const { id } = req.params;
-    const { password } = req.body;
+    const { password, topics } = req.body;
 
     const userId = req.user._id;
     const clerkId = req.user.clerkId;
@@ -214,10 +212,17 @@ export async function joinSession(req, res) {
     }
 
     // ⚡ atomic join (prevents race condition)
+    const problems = await Problem.aggregate([
+      // If we want to strictly match topics, un-comment the next line.
+      // For now, randomly select based on questionCount to fulfill the generic requirements:
+      { $sample: { size: session.questionCount || 2 } }
+    ]);
+    const problemIds = problems.map((p) => p._id);
+
     const updatedSession = await Session.findOneAndUpdate(
       { _id: id, participant: null },
-      { participant: userId, status: "active" },
-      { new: true },
+      { participant: userId, status: "active", chosen_topic: topics, problems: problemIds, startedAt: Date.now() },
+      { new: true, runValidators: true },
     );
 
     if (!updatedSession) {
@@ -274,6 +279,46 @@ export async function endSession(req, res) {
     });
   } catch (error) {
     console.log("endSession error:", error.message);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+// =======================
+// DELETE SESSION
+// =======================
+export async function deleteSession(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+
+    const session = await Session.findById(id);
+
+    if (!session) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+
+    if (session.host.toString() !== userId.toString()) {
+      return res.status(403).json({ message: "Only host allowed" });
+    }
+
+    try {
+      if (session.callId) {
+        await streamClient.video
+          .call("default", session.callId)
+          .delete({ hard: true });
+        await chatClient.channel("messaging", session.callId).delete();
+      }
+    } catch (err) {
+      console.log("Stream delete error (non-fatal):", err.message);
+    }
+
+    await Session.findByIdAndDelete(id);
+
+    return res.status(200).json({
+      message: "Session deleted successfully",
+    });
+  } catch (error) {
+    console.log("deleteSession error:", error.message);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 }

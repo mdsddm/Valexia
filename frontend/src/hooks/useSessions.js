@@ -11,22 +11,44 @@ export const useCreateSession = () => {
   return useMutation({
     mutationKey: ["createSession"],
 
-    mutationFn: async (payload) => {
-      console.log("Sending payload:", payload);
+    mutationFn: async (roomConfig) => {
+      // 🔥 FIX: normalize payload BEFORE sending
+      const payload = {
+        type: roomConfig.type,
+
+        scheduledAt:
+          roomConfig.type === "scheduled" && roomConfig.scheduledAt
+            ? new Date(roomConfig.scheduledAt)
+            : null,
+
+        questionCount: roomConfig.questionCount,
+        duration: roomConfig.duration,
+
+        // ✅ CRITICAL FIX
+        available_topic: roomConfig.topics,
+        name: roomConfig.name,
+
+        // ✅ password handling
+        password: roomConfig.passwordEnabled ? roomConfig.password : undefined,
+      };
+
+      console.log("🚀 FINAL PAYLOAD:", payload);
+
       const res = await sessionApi.createSession(payload);
-      return res.data;
+      return res;
     },
 
     onSuccess: (data) => {
       toast.success("Session created successfully!");
+
       queryClient.invalidateQueries({ queryKey: ["activeSessions"] });
       queryClient.invalidateQueries({ queryKey: ["myRecentSessions"] });
 
-      console.log("Session created:", data);
+      console.log("✅ Session created:", data);
     },
 
     onError: (error) => {
-      console.error("Create session error:", error);
+      console.error("❌ Create session error:", error);
       toast.error(error.response?.data?.message || "Failed to create session");
     },
   });
@@ -76,7 +98,7 @@ export const useJoinSession = () => {
     mutationFn: async (payload) => {
       // payload = { sessionId, topics, password }
       const res = await sessionApi.joinSession(payload);
-      return res.data;
+      return res;
     },
 
     onSuccess: () => {
@@ -101,7 +123,7 @@ export const useDeleteSession = () => {
 
     mutationFn: async (id) => {
       const res = await sessionApi.deleteSession(id);
-      return res.data;
+      return res;
     },
 
     onSuccess: () => {

@@ -17,12 +17,20 @@ export const sessionApi = {
     const response = await axiosInstance.get(`/sessions/${id}`);
     return response.data;
   },
-  joinSession: async (id) => {
-    const response = await axiosInstance.post(`/sessions/${id}/join`);
+  joinSession: async (payload) => {
+    const id = payload.sessionId || payload.id || payload;
+    const response = await axiosInstance.post(`/sessions/${id}/join`, {
+      topics: payload.topics || [],
+      password: payload.password,
+    });
     return response.data;
   },
   endSession: async (id) => {
     const response = await axiosInstance.post(`/sessions/${id}/end`);
+    return response.data;
+  },
+  deleteSession: async (id) => {
+    const response = await axiosInstance.delete(`/sessions/${id}`);
     return response.data;
   },
   getStreamToken: async () => {

@@ -26,6 +26,13 @@ const sessionSchema = new mongoose.Schema(
       index: true,
     },
 
+    // 🏷️ name
+    name: {
+      type: String,
+      trim: true,
+      default: "Interview Session",
+    },
+
     // ⏰ scheduling
     scheduledAt: {
       type: Date,
@@ -51,6 +58,11 @@ const sessionSchema = new mongoose.Schema(
       max: 300,
     },
 
+    questionCount: {
+      type: Number,
+      default: 2,
+    },
+
     // 📊 status
     status: {
       type: String,
@@ -59,6 +71,11 @@ const sessionSchema = new mongoose.Schema(
         return this.type === "live" ? "active" : "scheduled";
       },
       index: true,
+    },
+
+    startedAt: {
+      type: Date,
+      default: null,
     },
 
     // 🧠 topics
@@ -80,12 +97,6 @@ const sessionSchema = new mongoose.Schema(
             return arr.length <= 2;
           },
           message: "Max 2 topics allowed",
-        },
-        {
-          validator: function (arr) {
-            return arr.every((t) => this.available_topic.includes(t));
-          },
-          message: "Chosen topics must be from available",
         },
       ],
     },
@@ -162,9 +173,8 @@ const sessionSchema = new mongoose.Schema(
 );
 
 // 🔁 middleware
-sessionSchema.pre("save", function (next) {
+sessionSchema.pre("save", function () {
   this.isProtected = !!this.password;
-  next();
 });
 
 // ⚡ virtuals

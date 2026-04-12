@@ -40,7 +40,7 @@ function preprocessJava(code) {
   return code;
 }
 
-export async function executeCode(language, code) {
+export async function executeCode(language, code, stdin = "") {
   try {
     const languageKey = language.toLowerCase();
     const language_id = LANGUAGE_IDS[languageKey];
@@ -66,7 +66,7 @@ export async function executeCode(language, code) {
         body: JSON.stringify({
           source_code: code,
           language_id,
-          stdin: "",
+          stdin,
         }),
       },
     );

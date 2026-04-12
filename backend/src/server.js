@@ -44,6 +44,14 @@ io.on("connection", (socket) => {
     socket.to(sessionId).emit("code-update", code);
   });
 
+  socket.on("whiteboard-action", ({ sessionId, action, data }) => {
+    if (action === "draw") {
+      socket.to(sessionId).emit("whiteboard-draw", data);
+    } else if (action === "clear") {
+      socket.to(sessionId).emit("whiteboard-clear");
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
   });

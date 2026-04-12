@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { useAuth } from "@clerk/clerk-react";
 import { useNavigate, useParams } from "react-router";
 import Navbar from "../components/Navbar";
 
@@ -14,6 +15,7 @@ import FullScreenLoader from "../components/FullScreenLoader.jsx";
 const API = import.meta.env.VITE_API_URL;
 
 function ProblemPage() {
+  const { getToken } = useAuth();
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -22,6 +24,7 @@ function ProblemPage() {
 
   const [selectedLanguage, setSelectedLanguage] = useState("javascript");
   const [code, setCode] = useState("");
+  const [customInput, setCustomInput] = useState("");
   const [output, setOutput] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -37,7 +40,12 @@ function ProblemPage() {
   useEffect(() => {
     const fetchProblems = async () => {
       try {
-        const res = await fetch(`${API}/problems`);
+        const token = await getToken();
+        const res = await fetch(`${API}/problems`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         const data = await res.json();
         setProblems(data.problems);
       } catch {
@@ -52,7 +60,12 @@ function ProblemPage() {
   useEffect(() => {
     const fetchProblem = async () => {
       try {
-        const res = await fetch(`${API}/problems/${id}`);
+        const token = await getToken();
+        const res = await fetch(`${API}/problems/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         const data = await res.json();
         setCurrentProblem(data.problem);
         const starter = data.problem.starterCode[selectedLanguage] || "";
@@ -112,15 +125,18 @@ function ProblemPage() {
     setIsSuccess(false);
 
     try {
+      const token = await getToken();
       const res = await fetch(`${API}/execute`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           language: selectedLanguage,
           code,
           problemId: currentProblem._id,
+          customInput,
         }),
       });
 
@@ -206,7 +222,12 @@ function ProblemPage() {
               <PanelResizeHandle className="h-2 bg-base-300 hover:bg-primary" />
 
               <Panel defaultSize={30} minSize={20}>
-                <OutputPanel output={output} isSuccess={isSuccess} />
+                <OutputPanel 
+                   output={output} 
+                   isSuccess={isSuccess} 
+                   customInput={customInput} 
+                   setCustomInput={setCustomInput} 
+                />
               </Panel>
             </PanelGroup>
           </Panel>

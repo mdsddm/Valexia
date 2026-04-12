@@ -14,18 +14,27 @@ function useStreamClient(session, loadingSession, isHost, isParticipant) {
   const [channel, setChannel] = useState(null);
   const [isInitializingCall, setIsInitializingCall] = useState(true);
 
+  const hasParticipant = !!session?.participant;
+  const callId = session?.callId;
+  const sessionStatus = session?.status;
+
   useEffect(() => {
     let videoCall = null;
     let chatClientInstance = null;
+    let isMounted = true;
 
     const initCall = async () => {
-      if (!session?.callId) return;
+      if (!callId) return;
       if (!isHost && !isParticipant) return;
-      if (session.status === "completed") return;
+      if (sessionStatus === "completed") return;
+      
+      // Removed early return so host can connect before candidate joins
 
       try {
         const { token, userId, userName, userImage } =
           await sessionApi.getStreamToken();
+
+        if (!isMounted) return;
 
         const client = await initializeStreamClient(
           {
@@ -38,26 +47,32 @@ function useStreamClient(session, loadingSession, isHost, isParticipant) {
 
         setStreamClient(client);
 
-        videoCall = client.call("default", session.callId);
+        videoCall = client.call("default", callId);
         await videoCall.join({ create: true });
         setCall(videoCall);
 
         const apiKey = import.meta.env.VITE_STREAM_API_KEY;
         chatClientInstance = StreamChat.getInstance(apiKey);
 
-        await chatClientInstance.connectUser(
-          {
-            id: userId,
-            name: userName,
-            image: userImage,
-          },
-          token,
-        );
+        if (chatClientInstance.userID && chatClientInstance.userID !== userId) {
+          await chatClientInstance.disconnectUser();
+        }
+
+        if (!chatClientInstance.userID) {
+          await chatClientInstance.connectUser(
+            {
+              id: userId,
+              name: userName,
+              image: userImage,
+            },
+            token,
+          );
+        }
         setChatClient(chatClientInstance);
 
         const chatChannel = chatClientInstance.channel(
           "messaging",
-          session.callId,
+          callId,
         );
         await chatChannel.watch();
         setChannel(chatChannel);
@@ -65,26 +80,28 @@ function useStreamClient(session, loadingSession, isHost, isParticipant) {
         toast.error("Failed to join video call");
         console.error("Error init call", error);
       } finally {
-        setIsInitializingCall(false);
+        if (isMounted) setIsInitializingCall(false);
       }
     };
 
-    if (session && !loadingSession) initCall();
+    if (callId && !loadingSession) initCall();
 
     // cleanup - performance reasons
     return () => {
+      isMounted = false;
       // iife
       (async () => {
         try {
           if (videoCall) await videoCall.leave();
-          if (chatClientInstance) await chatClientInstance.disconnectUser();
+          // Avoid disconnecting chat on unmount to prevent Strict Mode tears
+          // StreamChat.getInstance() manages its own connection well across remounts
           await disconnectStreamClient();
         } catch (error) {
           console.error("Cleanup error:", error);
         }
       })();
     };
-  }, [session, loadingSession, isHost, isParticipant]);
+  }, [callId, sessionStatus, loadingSession, isHost, isParticipant]);
 
   return {
     streamClient,

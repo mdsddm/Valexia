@@ -34,6 +34,7 @@ function DashboardPage() {
 
   // ROOM CONFIG
   const [roomConfig, setRoomConfig] = useState({
+    name: "",
     type: "live",
     scheduledAt: "",
     questionCount: 2,
@@ -62,24 +63,11 @@ function DashboardPage() {
     if (roomConfig.type === "scheduled" && !roomConfig.scheduledAt) return;
 
     createSessionMutation.mutate(
-      {
-        type: roomConfig.type,
-        scheduledAt:
-          roomConfig.type === "scheduled"
-            ? new Date(roomConfig.scheduledAt)
-            : null,
-        topics: roomConfig.topics,
-        questionCount: roomConfig.questionCount,
-        duration: roomConfig.duration,
-        clerkId: user?.id,
-        name: user?.fullName,
-      },
+      roomConfig,
       {
         onSuccess: (data) => {
           setShowCreateModal(false);
-          if (data.session.type === "live") {
-            navigate(`/session/${data.session._id}`);
-          }
+          navigate(`/session/${data.session._id}`);
         },
       }
     );
@@ -87,6 +75,10 @@ function DashboardPage() {
 
   // JOIN
   const handleJoinClick = (session) => {
+    if (isUserInSession(session)) {
+      navigate(`/session/${session._id}`);
+      return;
+    }
     setSelectedSession(session);
     setShowJoinModal(true);
   };

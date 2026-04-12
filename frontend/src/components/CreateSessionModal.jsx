@@ -1,4 +1,12 @@
-import { Code2Icon, LoaderIcon, PlusIcon, XIcon } from "lucide-react";
+import {
+  Code2Icon,
+  LoaderIcon,
+  PlusIcon,
+  XIcon,
+  ClockIcon,
+  ListChecksIcon,
+  LockIcon,
+} from "lucide-react";
 import { TOPIC_GROUPS } from "../data/problems.js";
 
 function CreateSessionModal({
@@ -25,23 +33,36 @@ function CreateSessionModal({
     });
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      {/* MODAL */}
-      <div className="w-full max-w-2xl bg-base-100 rounded-2xl shadow-2xl border border-base-300 overflow-hidden">
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (
+      isCreating ||
+      selectedTopics.length === 0 ||
+      (roomConfig.type === "scheduled" && !roomConfig.scheduledAt) ||
+      (roomConfig.passwordEnabled && !roomConfig.password)
+    ) return;
+    onCreateRoom();
+  };
 
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md">
+      <form onSubmit={handleSubmit} className="w-full max-w-2xl bg-base-100 rounded-3xl shadow-2xl border border-base-300 overflow-hidden">
         {/* HEADER */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-base-300">
-          <div>
-            <h2 className="text-xl font-semibold tracking-tight">
-              Create Session
-            </h2>
-            <p className="text-sm text-base-content/60 mt-1">
-              Setup your interview session
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-primary/10">
+              <Code2Icon className="size-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">Create Session</h2>
+              <p className="text-xs text-base-content/60">
+                Setup your interview session
+              </p>
+            </div>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
             className="p-2 rounded-lg hover:bg-base-200 transition"
           >
@@ -50,25 +71,35 @@ function CreateSessionModal({
         </div>
 
         {/* BODY */}
-        <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
-
-          {/* SESSION TYPE */}
+        <div className="p-6 space-y-7 max-h-[75vh] overflow-y-auto">
+          {/* NAME */}
           <div>
-            <p className="text-sm font-medium mb-2">Session Type</p>
-            <div className="flex gap-3">
+            <p className="text-sm font-medium mb-3">Session Name</p>
+            <input
+              type="text"
+              placeholder="e.g. Frontend React Interview"
+              value={roomConfig.name || ""}
+              onChange={(e) => setRoomConfig((prev) => ({ ...prev, name: e.target.value }))}
+              className="w-full px-3 py-2 rounded-xl border border-base-300 bg-base-100 focus:outline-none focus:ring-2 focus:ring-primary/40"
+            />
+          </div>
+
+          {/* TYPE */}
+          <div>
+            <p className="text-sm font-medium mb-3">Session Type</p>
+            <div className="grid grid-cols-2 gap-3">
               {["live", "scheduled"].map((type) => (
                 <button
+                  type="button"
                   key={type}
-                  onClick={() =>
-                    setRoomConfig((prev) => ({ ...prev, type }))
-                  }
-                  className={`flex-1 py-2 rounded-lg border text-sm transition ${
+                  onClick={() => setRoomConfig((prev) => ({ ...prev, type }))}
+                  className={`py-3 rounded-xl border text-sm font-medium transition ${
                     roomConfig.type === type
-                      ? "bg-primary text-white border-primary"
-                      : "border-base-300 hover:border-primary"
+                      ? "bg-primary text-white border-primary shadow"
+                      : "border-base-300 hover:border-primary hover:text-primary"
                   }`}
                 >
-                  {type === "live" ? "Live" : "Scheduled"}
+                  {type === "live" ? "⚡ Live Now" : "📅 Schedule"}
                 </button>
               ))}
             </div>
@@ -76,8 +107,8 @@ function CreateSessionModal({
 
           {/* SCHEDULE */}
           {roomConfig.type === "scheduled" && (
-            <div>
-              <p className="text-sm font-medium mb-2">Date & Time</p>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Select Date & Time</p>
               <input
                 type="datetime-local"
                 value={roomConfig.scheduledAt || ""}
@@ -87,52 +118,55 @@ function CreateSessionModal({
                     scheduledAt: e.target.value,
                   }))
                 }
-                className="w-full px-3 py-2 rounded-lg border border-base-300 bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40"
+                className="w-full px-3 py-2 rounded-xl border border-base-300 bg-base-100
+                           focus:outline-none focus:ring-2 focus:ring-primary/40"
               />
             </div>
           )}
 
           {/* TOPICS */}
           <div>
-            <p className="text-sm font-medium mb-2">
-              Topics <span className="text-xs text-base-content/50">(select at least one)</span>
-            </p>
+            <p className="text-sm font-medium mb-3">Topics</p>
 
-            <div className="space-y-4 max-h-56 overflow-y-auto pr-1">
-              {Object.entries(TOPIC_GROUPS).map(([group, topics]) => (
-                <div key={group}>
-                  <p className="text-xs uppercase text-base-content/50 mb-2">
-                    {group}
-                  </p>
+            {Object.entries(TOPIC_GROUPS).map(([group, topics]) => (
+              <div key={group} className="mb-4">
+                <p className="text-xs uppercase text-base-content/50 mb-2">
+                  {group}
+                </p>
 
-                  <div className="flex flex-wrap gap-2">
-                    {topics.map((topic) => {
-                      const active = selectedTopics.includes(topic);
+                <div className="flex flex-wrap gap-2">
+                  {topics.map((topic) => {
+                    const active = selectedTopics.includes(topic);
 
-                      return (
-                        <button
-                          key={topic}
-                          onClick={() => toggleTopic(topic)}
-                          className={`px-3 py-1.5 text-sm rounded-full border transition ${
-                            active
-                              ? "bg-primary text-white border-primary shadow-sm"
-                              : "border-base-300 hover:border-primary hover:text-primary"
-                          }`}
-                        >
-                          {topic}
-                        </button>
-                      );
-                    })}
-                  </div>
+                    return (
+                      <button
+                        type="button"
+                        key={topic}
+                        onClick={() => toggleTopic(topic)}
+                        className={`px-3 py-1.5 text-sm rounded-full border transition ${
+                          active
+                            ? "bg-primary text-white border-primary shadow-sm"
+                            : "border-base-300 hover:border-primary hover:text-primary"
+                        }`}
+                      >
+                        {topic}
+                      </button>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
 
           {/* CONFIG */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm font-medium mb-2">Questions</p>
+          <div className="grid grid-cols-2 gap-5">
+            {/* QUESTIONS */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center gap-2">
+                <ListChecksIcon className="size-4 text-primary" />
+                Questions
+              </label>
+
               <select
                 value={roomConfig.questionCount}
                 onChange={(e) =>
@@ -141,18 +175,25 @@ function CreateSessionModal({
                     questionCount: Number(e.target.value),
                   }))
                 }
-                className="w-full px-3 py-2 rounded-lg border border-base-300 bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40"
+                className="select select-bordered w-full rounded-xl bg-base-100 text-base-content
+             focus:outline-none focus:ring-2 focus:ring-primary/40
+             hover:border-primary transition"
               >
                 {[1, 2, 3, 4, 5].map((n) => (
                   <option key={n} value={n}>
-                    {n}
+                    {n} Question{n > 1 ? "s" : ""}
                   </option>
                 ))}
               </select>
             </div>
 
-            <div>
-              <p className="text-sm font-medium mb-2">Duration</p>
+            {/* DURATION */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center gap-2">
+                <ClockIcon className="size-4 text-primary" />
+                Duration
+              </label>
+
               <select
                 value={roomConfig.duration}
                 onChange={(e) =>
@@ -161,7 +202,7 @@ function CreateSessionModal({
                     duration: Number(e.target.value),
                   }))
                 }
-                className="w-full px-3 py-2 rounded-lg border border-base-300 bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40"
+                className="select select-bordered w-full rounded-xl bg-base-100 text-base-content focus:outline-none focus:ring-2 focus:ring-primary/40"
               >
                 {[15, 30, 45, 60, 90].map((t) => (
                   <option key={t} value={t}>
@@ -173,9 +214,13 @@ function CreateSessionModal({
           </div>
 
           {/* PASSWORD */}
-          <div>
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium">Password Protection</p>
+              <p className="text-sm font-medium flex items-center gap-2">
+                <LockIcon className="size-4 text-primary" />
+                Password Protection
+              </p>
+
               <input
                 type="checkbox"
                 checked={!!roomConfig.passwordEnabled}
@@ -201,7 +246,8 @@ function CreateSessionModal({
                     password: e.target.value,
                   }))
                 }
-                className="mt-3 w-full px-3 py-2 rounded-lg border border-base-300 bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40"
+                className="w-full px-3 py-2 rounded-xl border border-base-300
+                           focus:ring-2 focus:ring-primary/40"
               />
             )}
           </div>
@@ -211,15 +257,14 @@ function CreateSessionModal({
             <Code2Icon className="size-5 mt-1 text-primary" />
             <div className="text-sm space-y-1">
               <p className="font-medium">Summary</p>
+              <p>Name: {roomConfig.name || "Interview Session"}</p>
               <p>Type: {roomConfig.type}</p>
               {roomConfig.type === "scheduled" && (
                 <p>Time: {roomConfig.scheduledAt || "Not set"}</p>
               )}
               <p>
                 Topics:{" "}
-                {selectedTopics.length
-                  ? selectedTopics.join(", ")
-                  : "None"}
+                {selectedTopics.length ? selectedTopics.join(", ") : "None"}
               </p>
               <p>Questions: {roomConfig.questionCount}</p>
               <p>Duration: {roomConfig.duration} min</p>
@@ -228,22 +273,24 @@ function CreateSessionModal({
         </div>
 
         {/* FOOTER */}
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-base-300">
+        <div className="flex justify-between items-center px-6 py-4 border-t border-base-300">
           <button
+            type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-lg border border-base-300 hover:bg-base-200 transition"
+            className="text-sm px-4 py-2 rounded-lg border border-base-300 hover:bg-base-200"
           >
             Cancel
           </button>
 
           <button
-            onClick={onCreateRoom}
+            type="submit"
             disabled={
               isCreating ||
+              selectedTopics.length === 0 ||
               (roomConfig.type === "scheduled" && !roomConfig.scheduledAt) ||
-              selectedTopics.length === 0
+              (roomConfig.passwordEnabled && !roomConfig.password)
             }
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white hover:opacity-90 transition disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white shadow hover:opacity-90 transition disabled:opacity-50"
           >
             {isCreating ? (
               <LoaderIcon className="size-5 animate-spin" />
@@ -253,7 +300,7 @@ function CreateSessionModal({
             {isCreating ? "Creating..." : "Create Session"}
           </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

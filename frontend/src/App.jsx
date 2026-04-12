@@ -1,4 +1,5 @@
-import { useUser } from "@clerk/clerk-react";
+import { useUser, useAuth } from "@clerk/clerk-react";
+import { useEffect } from "react";
 import { Toaster } from "react-hot-toast";
 import { Navigate, Route, Routes } from "react-router";
 import FullScreenLoader from "./components/FullScreenLoader.jsx";
@@ -8,8 +9,25 @@ import ProblemPage from "./pages/ProblemPage.jsx";
 import ProblemsPage from "./pages/ProblemsPage.jsx";
 import SessionPage from "./pages/SessionPage.jsx";
 import NotFound from "./pages/NotFound.jsx";
+import axiosInstance from "./lib/axios.js";
+
 function App() {
   const { isSignedIn, isLoaded } = useUser();
+  const { getToken } = useAuth();
+
+  useEffect(() => {
+    const reqInterceptor = axiosInstance.interceptors.request.use(async (config) => {
+      const token = await getToken();
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    });
+
+    return () => {
+      axiosInstance.interceptors.request.eject(reqInterceptor);
+    };
+  }, [getToken]);
   if (!isLoaded) {
     return <FullScreenLoader />;
   }
