@@ -1,0 +1,39 @@
+import mongoose from 'mongoose';
+import { createSession } from './src/controllers/sessionController.js';
+import { ENV } from './src/lib/env.js';
+
+async function run() {
+  await mongoose.connect(ENV.DB_URL);
+  
+  const req = {
+    body: {
+      type: 'live',
+      duration: 30,
+      topics: ['Arrays'],
+      questionCount: 2
+    },
+    user: {
+      _id: new mongoose.Types.ObjectId(),
+      clerkId: "test_clerk_id"
+    }
+  };
+  
+  const res = {
+    status: (code) => res,
+    json: (body) => console.log("JSON Body:", body.error) // Let's see the error
+  };
+  
+  // We want to console.error the STACK TRACE actually
+  const originalLog = console.log;
+  console.log = function(...args) {
+    if(args[0] === '❌ createSession error:') {
+      originalLog('CAPTURED CRASH TRACE:', args[1].stack || args[1]);
+    } else {
+      originalLog.apply(console, args);
+    }
+  }
+  
+  await createSession(req, res);
+  process.exit(0);
+}
+run();

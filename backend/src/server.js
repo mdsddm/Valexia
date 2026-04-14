@@ -10,7 +10,9 @@ import chatRoutes from "./routes/chatRoutes.js";
 import sessionRoute from "./routes/sessionRoute.js";
 import http from "http";
 import { Server } from "socket.io";
+import executeRoutes from "./routes/executeRoutes.js";
 
+import problemRoutes from "./routes/problemRoutes.js";
 const app = express();
 const server = http.createServer(app);
 
@@ -42,6 +44,14 @@ io.on("connection", (socket) => {
     socket.to(sessionId).emit("code-update", code);
   });
 
+  socket.on("whiteboard-action", ({ sessionId, action, data }) => {
+    if (action === "draw") {
+      socket.to(sessionId).emit("whiteboard-draw", data);
+    } else if (action === "clear") {
+      socket.to(sessionId).emit("whiteboard-clear");
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
   });
@@ -59,9 +69,11 @@ app.use(
   }),
 );
 
-app.use("/api/inngest", serve({ client: inngest, functions }));
-
 app.use("/api/chat", chatRoutes);
+app.use("/api/execute", executeRoutes);
+app.use("/api/inngest", serve({ client: inngest, functions }));
+app.use("/api/problems", problemRoutes);
+
 app.use("/api/sessions", sessionRoute);
 
 /* ---------------- HEALTH CHECK ---------------- */

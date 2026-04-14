@@ -3,9 +3,10 @@ import {
   CallingState,
   SpeakerLayout,
   useCallStateHooks,
+  useCall,
 } from "@stream-io/video-react-sdk";
 import { Loader2Icon, MessageSquareIcon, UsersIcon, XIcon } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import {
   Channel,
@@ -21,14 +22,22 @@ import "stream-chat-react/dist/css/v2/index.css";
 
 function VideoCallUI({ chatClient, channel, isMax }) {
   const navigate = useNavigate();
+  const call = useCall();
   const { useCallCallingState, useParticipantCount } = useCallStateHooks();
   const callingState = useCallCallingState();
   const participantCount = useParticipantCount();
   const [isChatOpen, setIsChatOpen] = useState(false);
 
+  useEffect(() => {
+    if (call) {
+      call.camera.disable().catch(e => console.error(e));
+      call.microphone.disable().catch(e => console.error(e));
+    }
+  }, [call]);
+
   if (callingState === CallingState.JOINING) {
     return (
-      <div className="h-full flex items-center justify-center">
+      <div className="h-full w-full flex items-center justify-center">
         <div className="text-center">
           <Loader2Icon className="w-12 h-12 mx-auto animate-spin text-primary mb-4" />
           <p className="text-lg">Joining call...</p>
@@ -39,44 +48,45 @@ function VideoCallUI({ chatClient, channel, isMax }) {
 
   return (
     <div
-      className={`h-full relative str-video gap-3 ${
+      className={`h-full w-full relative str-video gap-3 ${
         isMax ? "flex flex-col" : "flex"
       }`}
     >
       {/* VIDEO SECTION */}
-      <div className="flex-1 flex flex-col gap-3 min-h-0">
-        {/* Header */}
-        <div className="flex items-center justify-between gap-2 bg-base-100 p-3 rounded-lg shadow">
-          <div className="flex items-center gap-2">
-            <UsersIcon className="w-5 h-5 text-primary" />
-            <span className="font-semibold">
-              {participantCount}{" "}
-              {participantCount === 1 ? "participant" : "participants"}
+      <div className="flex-1 flex flex-col relative rounded-xl overflow-hidden bg-base-300 border border-base-300 min-h-0">
+        
+        {/* Floating Header */}
+        <div className="absolute top-3 right-3 z-10 flex gap-2">
+          <div className="bg-base-100/80 backdrop-blur-md px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-sm border border-base-300">
+            <UsersIcon className="w-4 h-4 text-primary" />
+            <span className="font-semibold text-sm">
+              {participantCount}
             </span>
           </div>
 
           {chatClient && channel && (
             <button
               onClick={() => setIsChatOpen(!isChatOpen)}
-              className={`btn btn-sm gap-2 ${
-                isChatOpen ? "btn-primary" : "btn-ghost"
+              className={`btn btn-sm btn-circle shadow-sm backdrop-blur-md border ${
+                isChatOpen ? "btn-primary border-primary" : "bg-base-100/80 border-base-300 hover:bg-base-200"
               }`}
               title={isChatOpen ? "Hide chat" : "Show chat"}
             >
               <MessageSquareIcon className="size-4" />
-              Chat
             </button>
           )}
         </div>
 
         {/* Video layout */}
-        <div className="flex-1 bg-base-300 rounded-lg overflow-hidden relative min-h-0">
+        <div className="absolute inset-0 z-0">
           <SpeakerLayout />
         </div>
 
-        {/* Controls */}
-        <div className="bg-base-100 p-3 rounded-lg shadow flex justify-center">
-          <CallControls onLeave={() => navigate("/dashboard")} />
+        {/* Floating Controls */}
+        <div className="absolute bottom-4 inset-x-0 z-10 flex justify-center pointer-events-none">
+          <div className="pointer-events-auto bg-base-100/90 backdrop-blur-md px-4 py-2 rounded-2xl shadow-lg border border-base-300 transition-opacity opacity-70 hover:opacity-100">
+            <CallControls onLeave={() => navigate("/dashboard")} />
+          </div>
         </div>
       </div>
 

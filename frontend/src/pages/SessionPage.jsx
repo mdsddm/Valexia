@@ -8,16 +8,14 @@ import {
   useSessionById,
 } from "../hooks/useSessions.js";
 
-import { PROBLEMS } from "../data/problems.js";
-import { executeCode } from "../lib/judge0.js";
-
 import Navbar from "../components/Navbar.jsx";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import { getDifficultyBadgeClass } from "../lib/utils";
 import { Loader2Icon, LogOutIcon, PhoneOffIcon } from "lucide-react";
 
 import CodeEditorPanel from "../components/CodeEditorPanel.jsx";
 import OutputPanel from "../components/OutputPanel.jsx";
+import WhiteboardPanel from "../components/WhiteboardPanel.jsx";
+import WaitingForCandidate from "../components/WaitingForCandidate.jsx";
 
 import useStreamClient from "../hooks/useStreamClient.js";
 import { StreamCall, StreamVideo } from "@stream-io/video-react-sdk";
@@ -45,17 +43,19 @@ function SessionPage() {
   const isHost = session?.host?.clerkId === user?.id;
   const isParticipant = session?.participant?.clerkId === user?.id;
 
+
+
   const { call, channel, chatClient, isInitializingCall, streamClient } =
     useStreamClient(session, loadingSession, isHost, isParticipant);
 
-  const problemData = session?.problem
-    ? Object.values(PROBLEMS).find(
-        (p) => p.title === session.problem || p.id === session.problem,
-      )
-    : null;
+  const [currentProblemIndex, setCurrentProblemIndex] = useState(0);
+  const problemData = session?.problems?.length > currentProblemIndex 
+    ? session.problems[currentProblemIndex] 
+    : session?.problems?.[0] || null;
 
   const [selectedLanguage, setSelectedLanguage] = useState("javascript");
   const [code, setCode] = useState("");
+  const [customInput, setCustomInput] = useState("");
 
   const [isMax, setIsMax] = useState(
     localStorage.getItem("ifSessionMax") === "true",
@@ -63,14 +63,54 @@ function SessionPage() {
 
   const toggleIsMax = () => setIsMax((prev) => !prev);
 
+  const [timeLeft, setTimeLeft] = useState(null);
+  const [activeTab, setActiveTab] = useState("code");
+
   const hasJoined = useRef(false);
-  const hasInitializedCode = useRef(false);
+  const lastProblemLangRef = useRef({ problemId: null, lang: null });
 
   const horizontalPanelRef = useRef(null);
   const verticalPanelRef = useRef(null);
 
-  /* JOIN SESSION */
+  /* LANGUAGE MAP (Judge0 IDs) */
+  const LANGUAGE_MAP = {
+    javascript: 63,
+    python: 71,
+    java: 62,
+    cpp: 54,
+  };
 
+  /* RUN CODE API */
+  const runCodeAPI = async () => {
+    try {
+      const token = await getToken();
+      const res = await fetch(`${API}/execute`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          language: selectedLanguage,
+          code,
+          problemId: problemData?._id,
+          customInput,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Execution failed");
+      }
+
+      return data;
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  /* JOIN SESSION */
   useEffect(() => {
     if (!session || !user || loadingSession) return;
     if (session.status !== "active") return;
@@ -91,8 +131,7 @@ function SessionPage() {
     refetch,
   ]);
 
-  /* REDIRECT IF SESSION ENDED */
-
+  /* REDIRECT IF ENDED */
   useEffect(() => {
     if (!session || loadingSession) return;
 
@@ -101,23 +140,59 @@ function SessionPage() {
     }
   }, [session, loadingSession, navigate]);
 
-  /* INITIALIZE STARTER CODE */
-
+  /* TIMER LOGIC */
   useEffect(() => {
-    function callUseEffect() {
-      if (!problemData) return;
-      if (hasInitializedCode.current) return;
+    if (!session?.startedAt || session.status !== "active") return;
 
-      const starter = problemData?.starterCode?.[selectedLanguage] || "";
-      setCode(starter);
+    const updateTimer = () => {
+      const now = Date.now();
+      const startedAt = new Date(session.startedAt).getTime();
+      const elapsed = now - startedAt;
+      const durationMs = (session.duration || 60) * 60 * 1000;
+      const remaining = Math.max(0, durationMs - elapsed);
+      setTimeLeft(remaining);
 
-      hasInitializedCode.current = true;
-    }
-    callUseEffect();
+      if (remaining === 0) {
+        if (isHost && session.status !== "completed") {
+          endSessionMutation.mutate(id, {
+            onSuccess: () => navigate("/dashboard"),
+          });
+        }
+      }
+    };
+
+    updateTimer(); // Initial call
+    const interval = setInterval(updateTimer, 1000);
+
+    return () => clearInterval(interval);
+  }, [session?.startedAt, session?.duration, session?.status, isHost, endSessionMutation, id, navigate]);
+
+  const formatTime = (ms) => {
+    if (ms === null) return "--:--";
+    const totalSeconds = Math.floor(ms / 1000);
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    if (h > 0) return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
+
+  /* INITIALIZE CODE */
+  useEffect(() => {
+    if (!problemData) return;
+
+    if (
+        lastProblemLangRef.current.problemId === problemData._id &&
+        lastProblemLangRef.current.lang === selectedLanguage
+    ) return;
+
+    const starter = problemData?.starterCode?.[selectedLanguage] || "";
+    setCode(starter);
+
+    lastProblemLangRef.current = { problemId: problemData._id, lang: selectedLanguage };
   }, [problemData, selectedLanguage]);
 
   /* PANEL LAYOUT */
-
   useEffect(() => {
     if (isMax) {
       horizontalPanelRef.current?.setLayout([70, 30]);
@@ -130,8 +205,18 @@ function SessionPage() {
     localStorage.setItem("ifSessionMax", isMax);
   }, [isMax]);
 
-  /* LANGUAGE CHANGE */
+  /* AUTO REFETCH (for host waiting) */
+  useEffect(() => {
+    if (!isHost) return;
 
+    const interval = setInterval(() => {
+      refetch();
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [isHost, refetch]);
+
+  /* LANGUAGE CHANGE */
   const handleLanguageChange = (e) => {
     const newLang = e.target.value;
 
@@ -143,31 +228,25 @@ function SessionPage() {
   };
 
   /* RUN CODE */
-
   const handleRunCode = async () => {
     setIsRunning(true);
 
-    const result = await executeCode(selectedLanguage, code);
+    const result = await runCodeAPI();
 
     setIsRunning(false);
 
     if (!result.success) {
-      toast.error("Code execution failed!");
+      toast.error(result.error || "Execution failed!");
       return;
     }
 
-    toast.success("Code executed successfully!");
+    toast.success("Code executed!");
     setOutput(result);
   };
 
   /* END SESSION */
-
   const handleEndSession = () => {
-    if (
-      confirm(
-        "Are you sure you want to end this session? All participants will be notified.",
-      )
-    ) {
+    if (confirm("End session for everyone?")) {
       endSessionMutation.mutate(id, {
         onSuccess: () => navigate("/dashboard"),
       });
@@ -177,194 +256,175 @@ function SessionPage() {
   return (
     <div className="h-screen bg-base-100 flex flex-col">
       <Navbar />
+      
+      {/* Session Toolbar */}
+      {session?.startedAt && (
+         <div className="bg-base-100 border-b border-base-300 py-3 px-6 flex justify-between items-center shadow-sm z-10 shrink-0">
+            <div className="flex items-center gap-3 w-1/3">
+                 <div className="badge badge-primary badge-outline font-semibold gap-1.5 p-3">
+                     <span className={`w-2 h-2 rounded-full ${session.status === 'active' ? 'bg-success animate-pulse' : 'bg-base-300'}`}></span>
+                     Live Session
+                 </div>
+                 <span className="text-sm text-base-content/70 font-medium hidden sm:block">
+                     {isHost ? "Host" : "Candidate"}
+                 </span>
+            </div>
+            
+            <div className={`font-mono font-bold text-xl w-1/3 text-center ${timeLeft !== null && timeLeft < 300000 ? "text-error animate-pulse" : "text-base-content"}`}>
+              {timeLeft === 0 ? "Ended" : formatTime(timeLeft)}
+            </div>
 
-      <div className="flex-1 min-h-0">
+            <div className="flex justify-end w-1/3">
+                <button 
+                  onClick={handleEndSession} 
+                  className="btn btn-error py-0 min-h-0 h-9 px-4 text-sm font-semibold rounded-md shadow-sm hover:shadow-md transition-shadow gap-2"
+                >
+                  <LogOutIcon className="w-4 h-4" />
+                  End Session
+                </button>
+            </div>
+         </div>
+      )}
+
+      <div className="flex-1 min-h-0 relative">
+        {isHost && (!session?.participant ? true : false) && (
+          <div className="absolute inset-0 z-50 bg-base-100">
+            <WaitingForCandidate sessionId={id} />
+          </div>
+        )}
         <PanelGroup ref={horizontalPanelRef} direction="horizontal">
-          {/* LEFT SIDE */}
-          <Panel defaultSize={50} minSize={30}>
-            <PanelGroup ref={verticalPanelRef} direction="vertical">
-              {/* PROBLEM SECTION */}
-              <Panel defaultSize={50} minSize={isMax ? 0 : 20}>
-                <div className="h-full overflow-y-auto bg-base-200">
-                  {/* HEADER */}
-                  <div className="p-6 bg-base-100 border-b border-base-300">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h1 className="text-3xl font-bold">
-                          {session?.problem || "Loading..."}
-                        </h1>
+          {/* LEFT */}
+          <Panel defaultSize={50}>
+            <div className="flex flex-col h-full bg-base-100">
+              {/* TAB BAR */}
+              <div className="flex border-b border-base-300 bg-base-100 shrink-0">
+                <button 
+                  className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === 'code' ? 'bg-base-200 border-b-2 border-primary text-primary' : 'text-base-content/70 hover:bg-base-200/50 hover:text-base-content'}`}
+                  onClick={() => setActiveTab('code')}
+                >
+                  Code & Problem
+                </button>
+                <button 
+                  className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === 'whiteboard' ? 'bg-base-200 border-b-2 border-primary text-primary' : 'text-base-content/70 hover:bg-base-200/50 hover:text-base-content'}`}
+                  onClick={() => setActiveTab('whiteboard')}
+                >
+                  Whiteboard
+                </button>
+              </div>
 
-                        {problemData?.category && (
-                          <p className="text-base-content/60 mt-1">
-                            {problemData.category}
-                          </p>
-                        )}
-
-                        <p className="text-base-content/60 mt-2">
-                          Host: {session?.host?.name || "Loading..."} •{" "}
-                          {session?.participant ? 2 : 1}/2 participants
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <span
-                          className={`badge badge-lg ${getDifficultyBadgeClass(
-                            session?.difficulty,
-                          )}`}
-                        >
-                          {session?.difficulty?.charAt(0).toUpperCase() +
-                            session?.difficulty?.slice(1)}
-                        </span>
-
-                        {isHost && session?.status === "active" && (
-                          <button
-                            onClick={handleEndSession}
-                            disabled={endSessionMutation.isPending}
-                            className="btn btn-error btn-sm gap-2"
-                          >
-                            {endSessionMutation.isPending ? (
-                              <Loader2Icon className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <LogOutIcon className="w-4 h-4" />
-                            )}
-                            End Session
-                          </button>
-                        )}
-
-                        {session?.status === "completed" && (
-                          <span className="badge badge-ghost badge-lg">
-                            Completed
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* PROBLEM CONTENT */}
-                  <div className="p-6 space-y-6">
-                    {/* DESCRIPTION */}
-                    {problemData?.description && (
-                      <div className="bg-base-100 rounded-xl shadow-sm p-5 border border-base-300">
-                        <h2 className="text-xl font-bold mb-4">Description</h2>
-
-                        <p className="text-base-content/90">
-                          {problemData.description.text}
-                        </p>
-
-                        {problemData.description.notes?.map((note, idx) => (
-                          <p key={idx} className="text-base-content/90 mt-2">
-                            {note}
-                          </p>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* EXAMPLES / TEST CASES */}
-                    {problemData?.examples?.length > 0 && (
-                      <div className="bg-base-100 rounded-xl shadow-sm p-5 border border-base-300">
-                        <h2 className="text-xl font-bold mb-4">Examples</h2>
-
-                        {problemData.examples.map((example, idx) => (
-                          <div key={idx} className="mb-4">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="badge badge-sm">{idx + 1}</span>
-                              <p className="font-semibold">Example {idx + 1}</p>
+              {/* TAB CONTENT */}
+              <div className="flex-1 min-h-0 relative">
+                <div style={{ display: activeTab === "code" ? "block" : "none", height: "100%" }}>
+                  <PanelGroup ref={verticalPanelRef} direction="vertical">
+                    <Panel defaultSize={50}>
+                      <div className="p-6 flex flex-col h-full gap-4 relative overflow-hidden">
+                        <div className="flex justify-between items-center shrink-0">
+                          <h1 className="text-2xl font-bold">
+                            {problemData?.title || "Select problem"}
+                          </h1>
+                          {session?.problems?.length > 1 && (
+                            <div className="flex gap-2">
+                              {session.problems.map((p, idx) => (
+                                <button
+                                  key={p._id}
+                                  onClick={() => setCurrentProblemIndex(idx)}
+                                  className={`btn btn-sm ${currentProblemIndex === idx ? "btn-primary" : "btn-outline"}`}
+                                >
+                                  Problem {idx + 1}
+                                </button>
+                              ))}
                             </div>
-
-                            <div className="bg-base-200 rounded-lg p-4 font-mono text-sm">
-                              <div>
-                                <strong>Input:</strong> {example.input}
-                              </div>
-
-                              <div>
-                                <strong>Output:</strong> {example.output}
-                              </div>
-
-                              {example.explanation && (
-                                <div className="mt-2 text-xs text-base-content/60">
-                                  <strong>Explanation:</strong>{" "}
-                                  {example.explanation}
+                          )}
+                        </div>
+                        <div className="flex-1 overflow-y-auto pr-2 pb-10">
+                          {problemData?.description?.text && (
+                            <div className="prose prose-sm prose-invert max-w-none text-base-content">
+                              <p className="whitespace-pre-wrap">{problemData.description.text}</p>
+                            </div>
+                          )}
+                          {problemData?.examples?.length > 0 && (
+                            <div className="mt-6 space-y-4">
+                              <h3 className="text-lg font-semibold border-b border-base-300 pb-2">Examples</h3>
+                              {problemData.examples.map((ex, i) => (
+                                <div key={i} className="bg-base-200 p-4 rounded-lg">
+                                  <p><strong>Input:</strong> <span className="font-mono text-sm">{ex.input}</span></p>
+                                  <p><strong>Output:</strong> <span className="font-mono text-sm">{ex.output}</span></p>
+                                  {ex.explanation && (
+                                    <p className="mt-2 text-base-content/80"><strong>Explanation:</strong> {ex.explanation}</p>
+                                  )}
                                 </div>
-                              )}
+                              ))}
                             </div>
-                          </div>
-                        ))}
+                          )}
+                        </div>
                       </div>
-                    )}
+                    </Panel>
 
-                    {/* CONSTRAINTS */}
-                    {problemData?.constraints?.length > 0 && (
-                      <div className="bg-base-100 rounded-xl shadow-sm p-5 border border-base-300">
-                        <h2 className="text-xl font-bold mb-4">Constraints</h2>
+                    <PanelResizeHandle />
 
-                        <ul className="space-y-2">
-                          {problemData.constraints.map((c, i) => (
-                            <li key={i} className="flex gap-2">
-                              <span>•</span>
-                              <code>{c}</code>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
+                    <Panel>
+                      <PanelGroup direction="vertical">
+                        <Panel>
+                          <CodeEditorPanel
+                            sessionId={id}
+                            selectedLanguage={selectedLanguage}
+                            code={code}
+                            isRunning={isRunning}
+                            onLanguageChange={handleLanguageChange}
+                            onCodeChange={(v) => setCode(v)}
+                            onRunCode={handleRunCode}
+                            isMax={isMax}
+                            toggleIsMax={toggleIsMax}
+                          />
+                        </Panel>
+
+                        <PanelResizeHandle />
+
+                        <Panel>
+                          <OutputPanel 
+                             output={output} 
+                             customInput={customInput} 
+                             setCustomInput={setCustomInput} 
+                          />
+                        </Panel>
+                      </PanelGroup>
+                    </Panel>
+                  </PanelGroup>
                 </div>
-              </Panel>
-
-              <PanelResizeHandle className="h-2 bg-base-300 hover:bg-primary cursor-row-resize" />
-
-              {/* EDITOR + OUTPUT */}
-
-              <Panel defaultSize={70} minSize={10}>
-                <PanelGroup direction="vertical">
-                  <Panel defaultSize={70} minSize={30}>
-                    <CodeEditorPanel
-                      sessionId={id}
-                      selectedLanguage={selectedLanguage}
-                      code={code}
-                      isRunning={isRunning}
-                      onLanguageChange={handleLanguageChange}
-                      onCodeChange={(value) => setCode(value)}
-                      onRunCode={handleRunCode}
-                      isMax={isMax}
-                      toggleIsMax={toggleIsMax}
-                    />
-                  </Panel>
-
-                  <PanelResizeHandle className="h-2 bg-base-300 hover:bg-primary cursor-row-resize" />
-
-                  <Panel defaultSize={30} minSize={15}>
-                    <OutputPanel output={output} />
-                  </Panel>
-                </PanelGroup>
-              </Panel>
-            </PanelGroup>
+                {activeTab === "whiteboard" && (
+                  <div className="h-full w-full">
+                    <WhiteboardPanel sessionId={id} />
+                  </div>
+                )}
+              </div>
+            </div>
           </Panel>
 
-          <PanelResizeHandle className="w-2 bg-base-300 hover:bg-primary cursor-col-resize" />
+          <PanelResizeHandle />
 
-          {/* VIDEO CALL */}
-
-          <Panel defaultSize={50} minSize={20}>
-            <div className="h-full bg-base-200 p-4 overflow-auto">
+          {/* VIDEO */}
+          <Panel>
+            <div className="h-full w-full">
               {isInitializingCall ? (
-                <div className="h-full flex items-center justify-center">
-                  <Loader2Icon className="w-12 h-12 animate-spin text-primary" />
+                <div className="h-full w-full flex items-center justify-center">
+                  <Loader2Icon className="w-10 h-10 animate-spin" />
                 </div>
-              ) : !streamClient || !call ? (
-                <div className="h-full flex items-center justify-center">
-                  <PhoneOffIcon className="w-12 h-12 text-error" />
+              ) : !call ? (
+                <div className="h-full w-full flex items-center justify-center">
+                  <PhoneOffIcon className="w-10 h-10 text-error" />
                 </div>
               ) : (
-                <StreamVideo client={streamClient}>
-                  <StreamCall call={call}>
-                    <VideoCallUI
-                      chatClient={chatClient}
-                      channel={channel}
-                      isMax={isMax}
-                    />
-                  </StreamCall>
-                </StreamVideo>
+                <div className="h-full w-full">
+                  <StreamVideo client={streamClient}>
+                    <StreamCall call={call}>
+                      <VideoCallUI
+                        chatClient={chatClient}
+                        channel={channel}
+                        isMax={isMax}
+                      />
+                    </StreamCall>
+                  </StreamVideo>
+                </div>
               )}
             </div>
           </Panel>

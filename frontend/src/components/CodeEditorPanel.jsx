@@ -55,14 +55,11 @@ function CodeEditorPanel({
   }, [onCodeChange, sessionId]);
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 bg-base-300 w-full h-full">
+    <div className="flex flex-col flex-1 min-h-0 bg-base-100 w-full h-full relative">
       {/* 🔥 Toolbar */}
-      <div
-        className="px-4 py-3 bg-base-100  border-base-300
-                flex items-center gap-3"
-      >
+      <div className="px-5 py-3 bg-base-100/80 backdrop-blur-md border-b border-base-300 flex items-center justify-between z-10 z-10 transition-colors">
         {/* Left Side (Icon + Select) */}
-        <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="flex items-center gap-3">
           <img
             src={LANGUAGE_CONFIG[selectedLanguage]?.icon}
             alt={LANGUAGE_CONFIG[selectedLanguage]?.name || selectedLanguage}
@@ -70,7 +67,7 @@ function CodeEditorPanel({
           />
 
           <select
-            className="select select-sm w-full max-w-37.5 min-w-0"
+            className="select select-bordered select-sm w-40 min-w-0 font-medium text-sm bg-base-200/50 hover:bg-base-200 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
             value={selectedLanguage}
             onChange={onLanguageChange}
           >
@@ -82,10 +79,10 @@ function CodeEditorPanel({
           </select>
         </div>
 
-        <div className="flex gap-6">
+        <div className="flex items-center gap-4">
           {/* Run Button */}
           <button
-            className="btn btn-primary btn-sm gap-1.5 shrink-0 whitespace-nowrap hover:scale-105"
+            className="btn btn-primary btn-sm gap-2 shrink-0 whitespace-nowrap shadow-md shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all"
             disabled={isRunning}
             onClick={onRunCode}
           >
@@ -104,7 +101,7 @@ function CodeEditorPanel({
             )}
           </button>
           <button
-            className="mr-2 text-primary shrink-0 hover:scale-110"
+            className="text-base-content/60 hover:text-primary transition-all p-1.5 rounded-lg hover:bg-primary/10"
             onClick={() => {
               toggleIsMax();
             }}

@@ -6,7 +6,7 @@ function WelcomeSection({ onCreateSession }) {
 
   return (
     <div className="relative overflow-hidden">
-      <div className="max-w-7xl mx-auto px-6 py-12">
+      <div className="max-w-7xl mx-auto px-6 py-2">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Left Section */}
           <div className="flex items-center gap-4">

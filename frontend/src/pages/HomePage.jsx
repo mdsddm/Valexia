@@ -22,12 +22,12 @@ const HomePage = () => {
             to={"/"}
             className="flex items-center gap-2 hover:scale-105 transition-transform duration-200"
           >
-            <div className="size-8 rounded-lg bg-gradient-to-br from-primary via-secondary to-accent flex items-center justify-center shadow-sm">
+            <div className="size-8 rounded-lg bg-linear-to-br from-primary via-secondary to-accent flex items-center justify-center shadow-sm">
               <Gem className="size-5 text-primary-content" />
             </div>
 
             <div className="flex flex-col leading-tight">
-              <span className="font-bold text-lg bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent font-mono">
+              <span className="font-bold text-lg bg-linear-to-r from-primary via-secondary to-accent bg-clip-text text-transparent font-mono">
                 Valexia
               </span>
               <span className="text-[10px] opacity-60 font-medium">
@@ -62,7 +62,7 @@ const HomePage = () => {
             </div>
 
             <h1 className="text-4xl lg:text-6xl font-extrabold leading-tight">
-              <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
                 Code Together,
               </span>
               <br />
@@ -131,7 +131,7 @@ const HomePage = () => {
 
           {/* RIGHT IMAGE */}
           <div className="relative">
-            <div className="absolute -inset-3 bg-gradient-to-r from-primary/20 via-secondary/20 to-accent/20 blur-2xl opacity-30 rounded-2xl"></div>
+            <div className="absolute -inset-3 bg-linear-to-r from-primary/20 via-secondary/20 to-accent/20 blur-2xl opacity-30 rounded-2xl"></div>
 
             <img
               src="/hero.png"

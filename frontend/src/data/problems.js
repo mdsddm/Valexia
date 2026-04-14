@@ -1,19 +1,6 @@
-import { first } from "./problem/first.js";
-import { second } from "./problem/second.js";
-import { third } from "./problem/third.js";
-import { fourth } from "./problem/fourth.js";
-import { fifth } from "./problem/fifth.js";
-import { six } from "./problem/six.js";
-
-export const PROBLEMS = {
-  ...first,
-  ...second,
-  ...third,
-  ...fourth,
-  ...fifth,
-  ...six,
-};
-
+// =======================
+// 💻 LANGUAGE CONFIG
+// =======================
 export const LANGUAGE_CONFIG = {
   javascript: {
     name: "JavaScript",
@@ -51,6 +38,10 @@ export const LANGUAGE_CONFIG = {
     monacoLang: "rust",
   },
 };
+
+// =======================
+// 🧠 DATA STRUCTURES
+// =======================
 export const DATA_STRUCTURES = [
   "Array",
   "String",
@@ -63,6 +54,9 @@ export const DATA_STRUCTURES = [
   "Matrix",
 ];
 
+// =======================
+// ⚙️ ALGORITHMS
+// =======================
 export const ALGORITHMS = [
   "Two Pointers",
   "Sliding Window",
@@ -78,4 +72,34 @@ export const ALGORITHMS = [
   "Sorting",
   "Divide and Conquer",
 ];
+
+// =======================
+// 🎯 ALL TOPICS (🔥 IMPORTANT)
+// =======================
+// 👉 Single source of truth for entire app
+export const TOPICS = [...DATA_STRUCTURES, ...ALGORITHMS];
+
+// =======================
+// 📊 DIFFICULTY
+// =======================
 export const DIFFICULTY = ["Easy", "Medium", "Hard"];
+
+// =======================
+// 🧩 HELPER UTILITIES (🔥 VERY USEFUL)
+// =======================
+
+// Validate topics (used in backend)
+export const isValidTopic = (topic) => {
+  return TOPICS.includes(topic);
+};
+
+// Validate multiple topics
+export const areValidTopics = (topics = []) => {
+  return topics.every((t) => TOPICS.includes(t));
+};
+
+// Group topics (for UI display)
+export const TOPIC_GROUPS = {
+  "Data Structures": DATA_STRUCTURES,
+  Algorithms: ALGORITHMS,
+};
