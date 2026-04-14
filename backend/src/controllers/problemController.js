@@ -1,4 +1,4 @@
-import Problem from "../models/problem.js";
+import Problem from "../models/Problem.js";
 
 export async function getProblems(req, res) {
   try {

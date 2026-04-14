@@ -1,4 +1,4 @@
-import Problem from "../models/problem.js";
+import Problem from "../models/Problem.js";
 import { executeCode } from "../services/judge0.js";
 
 export const runCode = async (req, res) => {
