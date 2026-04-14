@@ -3,9 +3,10 @@ import {
   CallingState,
   SpeakerLayout,
   useCallStateHooks,
+  useCall,
 } from "@stream-io/video-react-sdk";
 import { Loader2Icon, MessageSquareIcon, UsersIcon, XIcon } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import {
   Channel,
@@ -21,10 +22,18 @@ import "stream-chat-react/dist/css/v2/index.css";
 
 function VideoCallUI({ chatClient, channel, isMax }) {
   const navigate = useNavigate();
+  const call = useCall();
   const { useCallCallingState, useParticipantCount } = useCallStateHooks();
   const callingState = useCallCallingState();
   const participantCount = useParticipantCount();
   const [isChatOpen, setIsChatOpen] = useState(false);
+
+  useEffect(() => {
+    if (call) {
+      call.camera.disable().catch(e => console.error(e));
+      call.microphone.disable().catch(e => console.error(e));
+    }
+  }, [call]);
 
   if (callingState === CallingState.JOINING) {
     return (

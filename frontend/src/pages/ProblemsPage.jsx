@@ -87,20 +87,45 @@ const ProblemsPage = () => {
     applyFilters(selectDSA, selectAlgo, value ?? "");
 
   return (
-    <div className="min-h-screen bg-base-100 text-base-content">
+    <div className="min-h-screen bg-base-200 text-base-content">
       <Navbar />
 
       <div className="max-w-6xl mx-auto px-4 py-10">
-        {/* HEADER */}
-        <div className="flex items-center justify-between mb-10">
-          <div className="px-3">
-            <h1 className="text-3xl font-bold mb-1">Practice Problems</h1>
-            <p className="text-base-content/70">
-              Sharpen your coding skills with these curated problems
-            </p>
-          </div>
+        {/* HERO HEADER */}
+        <div className="text-center mb-12 mt-4">
+          <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-base-content tracking-tight">Practice Problems</h1>
+          <p className="text-base-content/60 max-w-2xl mx-auto text-lg">
+            Sharpen your coding skills with our curated collection of algorithm and data structure challenges.
+          </p>
+        </div>
 
-          <div className="flex gap-6">
+        {/* FILTER BAR */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3 flex-wrap">
+            <ProblemFilterDropdown
+              array={DIFFICULTY}
+              defaultName="Difficulty"
+              filter={filterDifficulty}
+              name={selectDifficulty}
+              setName={setSelectDifficulty}
+            />
+
+            <ProblemFilterDropdown
+              array={dataStructures}
+              defaultName="Tag"
+              filter={filterDSA}
+              name={selectDSA}
+              setName={setSelectDSA}
+            />
+
+            <ProblemFilterDropdown
+              array={algorithms}
+              defaultName="Algorithm"
+              filter={filterAlgo}
+              name={selectAlgo}
+              setName={setSelectAlgo}
+            />
+
             {(selectDSA || selectAlgo || selectDifficulty) && (
               <button
                 onClick={() => {
@@ -109,52 +134,42 @@ const ProblemsPage = () => {
                   setSelectDifficulty("");
                   applyFilters("", "", "");
                 }}
-                className="btn btn-outline btn-primary btn-sm"
+                className="btn btn-ghost btn-sm text-base-content/50 hover:text-error transition-colors px-2"
               >
-                Clear All
+                Clear
                 <X className="size-4" />
               </button>
             )}
-
-            <div className="flex gap-4">
-              <ProblemFilterDropdown
-                array={DIFFICULTY}
-                defaultName="Difficulty"
-                filter={filterDifficulty}
-                name={selectDifficulty}
-                setName={setSelectDifficulty}
-              />
-
-              <ProblemFilterDropdown
-                array={dataStructures}
-                defaultName="Tag"
-                filter={filterDSA}
-                name={selectDSA}
-                setName={setSelectDSA}
-              />
-
-              <ProblemFilterDropdown
-                array={algorithms}
-                defaultName="Algorithm"
-                filter={filterAlgo}
-                name={selectAlgo}
-                setName={setSelectAlgo}
-              />
-            </div>
           </div>
         </div>
 
-        {/* PROBLEMS LIST */}
-        <div className="space-y-4">
-          {problems.map((problem) => (
-            <Link
-              key={problem._id}
-              to={`/problem/${problem._id}`}
-              className="card bg-base-200 rounded-box shadow-lg hover:scale-[1.01] transition-transform"
-            >
-              <Problem problem={problem} />
-            </Link>
-          ))}
+        {/* PROBLEMS TABLE CONTAINER */}
+        <div className="bg-base-100 border border-base-300 rounded-2xl shadow-sm overflow-hidden mb-10">
+          {/* Table Header */}
+          <div className="hidden md:grid grid-cols-[1fr_120px_100px] items-center gap-6 px-6 py-4 border-b border-base-300 bg-base-200/40 text-xs font-bold text-base-content/50 uppercase tracking-wider">
+            <div>Problem</div>
+            <div className="text-center">Difficulty</div>
+            <div className="text-right">Action</div>
+          </div>
+
+          {/* Table Body */}
+          <div className="flex flex-col divide-y divide-base-300/50">
+            {problems.map((problem) => (
+              <Link
+                key={problem._id}
+                to={`/problem/${problem._id}`}
+                className="block group hover:bg-base-200/30 transition-colors"
+              >
+                <Problem problem={problem} />
+              </Link>
+            ))}
+            
+            {problems.length === 0 && (
+              <div className="px-6 py-16 text-center">
+                <p className="text-base-content/50 text-lg">No problems found matching your filters.</p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* STATS FOOTER */}

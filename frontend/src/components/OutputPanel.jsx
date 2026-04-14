@@ -39,12 +39,12 @@ function OutputPanel({ output, isSuccess, customInput, setCustomInput }) {
   }
 
   return (
-    <div className={`shadow-md border border-base-300 h-full w-full flex flex-col bg-base-100`}>
+    <div className="h-full w-full flex flex-col bg-base-100 relative">
       {/* Header Tabs */}
-      <div className="flex border-b border-base-300 bg-base-200/50 pt-2 px-2 shrink-0">
+      <div className="flex border-b border-base-300 bg-base-100/80 backdrop-blur-md pt-2 px-4 shrink-0 sticky top-0 z-10">
         <button
           onClick={() => setActiveTab("testcase")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-all ${
             activeTab === "testcase"
               ? "border-primary text-primary"
               : "border-transparent text-base-content/60 hover:text-base-content"
@@ -54,7 +54,7 @@ function OutputPanel({ output, isSuccess, customInput, setCustomInput }) {
         </button>
         <button
           onClick={() => setActiveTab("result")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-all ${
             activeTab === "result"
               ? "border-primary text-primary"
               : "border-transparent text-base-content/60 hover:text-base-content"
@@ -81,7 +81,7 @@ function OutputPanel({ output, isSuccess, customInput, setCustomInput }) {
                )}
             </div>
             <textarea
-              className="textarea textarea-bordered w-full flex-1 font-mono text-sm resize-none bg-base-200/50 focus:bg-base-200"
+              className="textarea textarea-bordered w-full flex-1 font-mono text-sm resize-none bg-base-200/50 focus:bg-base-200 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors"
               placeholder="Enter standard input values here..."
               value={customInput}
               onChange={(e) => setCustomInput(e.target.value)}
@@ -113,8 +113,8 @@ function OutputPanel({ output, isSuccess, customInput, setCustomInput }) {
               <div className="space-y-4 pb-4">
                 {/* User Output */}
                 <div>
-                   <span className="text-xs font-semibold uppercase opacity-60 ml-1">Your Output</span>
-                   <div className="mt-1.5 bg-base-200/70 border border-base-300 p-4 rounded-xl font-mono text-sm whitespace-pre-wrap break-words text-base-content/90 min-h-[60px]">
+                   <span className="text-xs font-semibold uppercase tracking-wider opacity-60 ml-1">Your Output</span>
+                   <div className="mt-2 bg-base-200/70 border border-base-300 p-4 rounded-xl font-mono text-sm whitespace-pre-wrap break-words text-base-content/90 min-h-[60px]">
                       {output.output || "No output generated"}
                    </div>
                 </div>
@@ -122,8 +122,8 @@ function OutputPanel({ output, isSuccess, customInput, setCustomInput }) {
                 {/* Expected Output */}
                 {output.expected && (
                   <div>
-                     <span className="text-xs font-semibold uppercase opacity-60 ml-1">Expected Output</span>
-                     <div className="mt-1.5 bg-base-200/70 border border-base-300 p-4 rounded-xl font-mono text-sm whitespace-pre-wrap break-words text-base-content/90 min-h-[60px]">
+                     <span className="text-xs font-semibold uppercase tracking-wider opacity-60 ml-1">Expected Output</span>
+                     <div className="mt-2 bg-base-200/70 border border-base-300 p-4 rounded-xl font-mono text-sm whitespace-pre-wrap break-words text-base-content/90 min-h-[60px]">
                         {output.expected}
                      </div>
                   </div>

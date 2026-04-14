@@ -173,20 +173,20 @@ function ProblemPage() {
   if (!currentProblem) return <FullScreenLoader />;
 
   return (
-    <div className="h-screen flex flex-col bg-base-100 overflow-hidden">
+    <div className="h-screen flex flex-col bg-base-300 overflow-hidden">
       <Navbar />
 
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden p-2">
         <PanelGroup
           ref={horizontalPanelRef}
           direction="horizontal"
-          className="h-full"
+          className="h-full gap-2"
         >
           <Panel
             defaultSize={40}
             minSize={30}
             collapsible
-            className="flex flex-col min-h-0"
+            className="flex flex-col min-h-0 bg-base-100 rounded-2xl overflow-hidden shadow-sm border border-base-300/50"
           >
             <ProblemDescription
               problem={currentProblem}
@@ -197,16 +197,18 @@ function ProblemPage() {
           </Panel>
 
           {!isMax && (
-            <PanelResizeHandle className="w-2 bg-base-300 hover:bg-primary" />
+            <PanelResizeHandle className="w-2 relative group cursor-col-resize flex items-center justify-center">
+              <div className="w-1 h-8 rounded-full bg-base-content/10 group-hover:bg-primary/50 transition-colors" />
+            </PanelResizeHandle>
           )}
 
-          <Panel defaultSize={60} minSize={30}>
+          <Panel defaultSize={60} minSize={30} className="flex flex-col min-h-0">
             <PanelGroup
               ref={verticalPanelRef}
               direction="vertical"
-              className="h-full"
+              className="h-full gap-2"
             >
-              <Panel defaultSize={70} minSize={30}>
+              <Panel defaultSize={70} minSize={30} className="bg-base-100 rounded-2xl overflow-hidden shadow-sm border border-base-300/50">
                 <CodeEditorPanel
                   selectedLanguage={selectedLanguage}
                   code={code}
@@ -219,9 +221,11 @@ function ProblemPage() {
                 />
               </Panel>
 
-              <PanelResizeHandle className="h-2 bg-base-300 hover:bg-primary" />
+              <PanelResizeHandle className="h-2 relative group cursor-row-resize flex items-center justify-center">
+                <div className="h-1 w-8 rounded-full bg-base-content/10 group-hover:bg-primary/50 transition-colors" />
+              </PanelResizeHandle>
 
-              <Panel defaultSize={30} minSize={20}>
+              <Panel defaultSize={30} minSize={20} className="bg-base-100 rounded-2xl overflow-hidden shadow-sm border border-base-300/50">
                 <OutputPanel 
                    output={output} 
                    isSuccess={isSuccess} 
