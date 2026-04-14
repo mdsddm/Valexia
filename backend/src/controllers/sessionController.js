@@ -1,6 +1,6 @@
 import { chatClient, streamClient } from "../lib/stream.js";
 import Session from "../models/Session.js";
-import Problem from "../models/problem.js";
+import Problem from "../models/Problem.js";
 import bcrypt from "bcryptjs";
 
 // =======================
