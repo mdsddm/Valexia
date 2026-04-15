@@ -111,7 +111,7 @@ function ProblemDescription({
                             <p className="font-medium text-sm truncate">{p.title}</p>
                             <p className="text-xs opacity-70 mt-0.5">{p.category}</p>
                           </div>
-                          <span className={`badge badge-sm flex-shrink-0 ${getDifficultyBadgeClass(p.difficulty)}`}>
+                          <span className={`badge badge-sm shrink-0 ${getDifficultyBadgeClass(p.difficulty)}`}>
                             {p.difficulty}
                           </span>
                         </div>
