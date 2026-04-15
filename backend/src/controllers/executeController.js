@@ -30,8 +30,28 @@ export const runCode = async (req, res) => {
       });
     }
 
-    // compare output with expected output
-    const expected = problem.expectedOutput?.get(language) || "";
+    const expectedFromMap =
+      problem.expectedOutput?.get?.(language) ||
+      problem.expectedOutput?.[language] ||
+      "";
+    const expectedFromTestCases =
+      problem.testCases?.find((tc) => !tc?.isHidden)?.output ||
+      problem.testCases?.[0]?.output ||
+      "";
+    const expectedFromExamples = problem.examples?.[0]?.output || "";
+    const expected =
+      [expectedFromMap, expectedFromTestCases, expectedFromExamples].find(
+        (value) => typeof value === "string" && value.trim().length > 0,
+      ) || "";
+
+    if (!expected) {
+      return res.json({
+        success: true,
+        output: result.output,
+        expected: null,
+        passed: true,
+      });
+    }
 
     const passed = result.output.trim() === expected.trim();
 

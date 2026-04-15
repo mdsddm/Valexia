@@ -58,7 +58,7 @@ function CodeEditorPanel({
   return (
     <div className="flex flex-col flex-1 min-h-0 bg-base-100 w-full h-full relative">
       {/* 🔥 Toolbar */}
-      <div className="px-5 py-3 bg-base-100/80 backdrop-blur-md border-b border-base-300 flex items-center justify-between z-10 z-10 transition-colors">
+      <div className="px-5 py-3 bg-base-100/80 backdrop-blur-md border-b border-base-300 flex items-center justify-between z-10 transition-colors">
         {/* Left Side (Icon + Select) */}
         <div className="flex items-center gap-3">
           <img
