@@ -1,4 +1,5 @@
 import { Gem } from "lucide-react";
+import Skeleton from "react-loading-skeleton";
 
 const FullScreenLoader = () => {
   return (
@@ -24,7 +25,9 @@ const FullScreenLoader = () => {
           </h1>
           <p className="opacity-60 text-sm">Syncing your session...</p>
         </div>
-        <span className="loading loading-dots loading-md text-primary"></span>
+        <div className="w-36">
+          <Skeleton height={10} />
+        </div>
         <span className="sr-only">Syncing your session...</span>
       </div>
     </div>

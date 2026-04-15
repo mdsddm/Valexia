@@ -8,6 +8,7 @@ import StatsFooter from "../components/StatsFooter.jsx";
 import ProblemFilterDropdown from "../components/ProblemFilterDropdown.jsx";
 import toast from "react-hot-toast";
 import { API_BASE_URL } from "../lib/api";
+import { ProblemsTableSkeleton } from "../components/AppSkeletons.jsx";
 
 const API = API_BASE_URL;
 
@@ -17,6 +18,7 @@ const ProblemsPage = () => {
   const { getToken } = useAuth();
   const [allProblems, setAllProblems] = useState([]);
   const [problems, setProblems] = useState([]);
+  const [isLoadingProblems, setIsLoadingProblems] = useState(true);
 
   const [selectDSA, setSelectDSA] = useState("");
   const [selectAlgo, setSelectAlgo] = useState("");
@@ -29,6 +31,7 @@ const ProblemsPage = () => {
   useEffect(() => {
     const fetchProblems = async () => {
       try {
+        setIsLoadingProblems(true);
         const token = await getToken();
         const res = await fetch(`${API}/problems`, {
           headers: {
@@ -50,6 +53,8 @@ const ProblemsPage = () => {
         setAlgorithms(tagList);
       } catch {
         toast.error("Failed to load problems");
+      } finally {
+        setIsLoadingProblems(false);
       }
     };
 
@@ -154,23 +159,27 @@ const ProblemsPage = () => {
           </div>
 
           {/* Table Body */}
-          <div className="flex flex-col divide-y divide-base-300/50">
-            {problems.map((problem) => (
-              <Link
-                key={problem._id}
-                to={`/problem/${problem._id}`}
-                className="block group hover:bg-base-200/30 transition-colors"
-              >
-                <Problem problem={problem} />
-              </Link>
-            ))}
-            
-            {problems.length === 0 && (
-              <div className="px-6 py-16 text-center">
-                <p className="text-base-content/50 text-lg">No problems found matching your filters.</p>
-              </div>
-            )}
-          </div>
+          {isLoadingProblems ? (
+            <ProblemsTableSkeleton />
+          ) : (
+            <div className="flex flex-col divide-y divide-base-300/50">
+              {problems.map((problem) => (
+                <Link
+                  key={problem._id}
+                  to={`/problem/${problem._id}`}
+                  className="block group hover:bg-base-200/30 transition-colors"
+                >
+                  <Problem problem={problem} />
+                </Link>
+              ))}
+
+              {problems.length === 0 && (
+                <div className="px-6 py-16 text-center">
+                  <p className="text-base-content/50 text-lg">No problems found matching your filters.</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* STATS FOOTER */}

@@ -5,11 +5,11 @@ import {
   Gem,
   UsersIcon,
   ZapIcon,
-  LoaderIcon,
   ClockIcon,
   TrashIcon,
 } from "lucide-react";
 import { getDifficultyBadgeClass } from "../lib/utils";
+import { ActiveSessionsSkeleton } from "./AppSkeletons.jsx";
 
 function ActiveSessions({
   sessions = [],
@@ -144,9 +144,7 @@ function ActiveSessions({
 
       {/* CONTENT */}
       {isLoading ? (
-        <div className="flex justify-center py-12">
-          <LoaderIcon className="size-8 animate-spin text-primary" />
-        </div>
+        <ActiveSessionsSkeleton />
       ) : sessions.length > 0 ? (
         <div className="space-y-3">
           {liveSessions.length > 0 && (

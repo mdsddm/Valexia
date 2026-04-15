@@ -1,6 +1,5 @@
 import {
   Code2Icon,
-  LoaderIcon,
   PlusIcon,
   XIcon,
   ClockIcon,
@@ -8,6 +7,7 @@ import {
   LockIcon,
 } from "lucide-react";
 import { TOPIC_GROUPS } from "../data/problems.js";
+import Skeleton from "react-loading-skeleton";
 
 function CreateSessionModal({
   isOpen,
@@ -293,7 +293,9 @@ function CreateSessionModal({
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white shadow hover:opacity-90 transition disabled:opacity-50"
           >
             {isCreating ? (
-              <LoaderIcon className="size-5 animate-spin" />
+              <div className="w-5">
+                <Skeleton height={16} />
+              </div>
             ) : (
               <PlusIcon className="size-5" />
             )}

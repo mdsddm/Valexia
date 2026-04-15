@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { LoaderIcon, XIcon } from "lucide-react";
+import { XIcon } from "lucide-react";
+import Skeleton from "react-loading-skeleton";
 
 function JoinSessionModal({ isOpen, onClose, session, onJoin, isJoining }) {
   const [selectedTopics, setSelectedTopics] = useState([]);
@@ -200,7 +201,9 @@ function JoinSessionModal({ isOpen, onClose, session, onJoin, isJoining }) {
               className="flex items-center gap-2 px-5 py-2 rounded-lg bg-primary text-primary-content hover:opacity-90 transition disabled:opacity-50 text-sm font-medium"
             >
               {isJoining ? (
-                <LoaderIcon className="animate-spin size-4" />
+                <div className="w-5">
+                  <Skeleton height={14} />
+                </div>
               ) : (
                 "Enter Session"
               )}

@@ -1,5 +1,6 @@
 import { Gem, Copy, Check, Mic, Camera } from "lucide-react";
 import { useState, useEffect } from "react";
+import Skeleton from "react-loading-skeleton";
 
 const WaitingForCandidate = ({ sessionId }) => {
   const [copied, setCopied] = useState(false);
@@ -76,7 +77,9 @@ const WaitingForCandidate = ({ sessionId }) => {
             </div>
         </div>
 
-        <span className="loading loading-dots loading-md text-primary mt-4"></span>
+        <div className="w-32 mt-4">
+          <Skeleton height={10} />
+        </div>
       </div>
     </div>
   );

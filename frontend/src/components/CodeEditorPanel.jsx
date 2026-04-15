@@ -3,6 +3,7 @@ import { Loader2Icon, PlayIcon, Maximize, Minimize } from "lucide-react";
 import { LANGUAGE_CONFIG } from "../data/problems";
 import { useEffect, useState } from "react";
 import { socket } from "../lib/socket";
+import { CodeEditorSkeleton } from "./AppSkeletons.jsx";
 function CodeEditorPanel({
   sessionId,
   selectedLanguage,
@@ -143,10 +144,7 @@ function CodeEditorPanel({
             }}
           />
         ) : (
-          <div className="flex flex-col items-center gap-3 text-base-content/60">
-            <Loader2Icon className="w-6 h-6 animate-spin" />
-            <p className="text-sm">Loading starter code...</p>
-          </div>
+          <CodeEditorSkeleton />
         )}
       </div>
     </div>

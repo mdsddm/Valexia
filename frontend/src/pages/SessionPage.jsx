@@ -1,4 +1,4 @@
-import { useUser } from "@clerk/clerk-react";
+import { useAuth, useUser } from "@clerk/clerk-react";
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router";
 import toast from "react-hot-toast";
@@ -10,7 +10,7 @@ import {
 
 import Navbar from "../components/Navbar.jsx";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import { Loader2Icon, LogOutIcon, PhoneOffIcon } from "lucide-react";
+import { LogOutIcon, PhoneOffIcon } from "lucide-react";
 
 import CodeEditorPanel from "../components/CodeEditorPanel.jsx";
 import OutputPanel from "../components/OutputPanel.jsx";
@@ -20,11 +20,16 @@ import WaitingForCandidate from "../components/WaitingForCandidate.jsx";
 import useStreamClient from "../hooks/useStreamClient.js";
 import { StreamCall, StreamVideo } from "@stream-io/video-react-sdk";
 import VideoCallUI from "../components/VideoCallUI.jsx";
+import { API_BASE_URL } from "../lib/api";
+import FullScreenLoader from "../components/FullScreenLoader.jsx";
+import { VideoCallSkeleton } from "../components/AppSkeletons.jsx";
 
 function SessionPage() {
   const navigate = useNavigate();
   const { id } = useParams();
   const { user } = useUser();
+  const { getToken } = useAuth();
+  const API = API_BASE_URL;
 
   const [output, setOutput] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -71,14 +76,6 @@ function SessionPage() {
 
   const horizontalPanelRef = useRef(null);
   const verticalPanelRef = useRef(null);
-
-  /* LANGUAGE MAP (Judge0 IDs) */
-  const LANGUAGE_MAP = {
-    javascript: 63,
-    python: 71,
-    java: 62,
-    cpp: 54,
-  };
 
   /* RUN CODE API */
   const runCodeAPI = async () => {
@@ -253,6 +250,10 @@ function SessionPage() {
     }
   };
 
+  if (loadingSession && !session) {
+    return <FullScreenLoader />;
+  }
+
   return (
     <div className="h-screen bg-base-100 flex flex-col">
       <Navbar />
@@ -406,9 +407,7 @@ function SessionPage() {
           <Panel>
             <div className="h-full w-full">
               {isInitializingCall ? (
-                <div className="h-full w-full flex items-center justify-center">
-                  <Loader2Icon className="w-10 h-10 animate-spin" />
-                </div>
+                <VideoCallSkeleton />
               ) : !call ? (
                 <div className="h-full w-full flex items-center justify-center">
                   <PhoneOffIcon className="w-10 h-10 text-error" />

@@ -1,6 +1,7 @@
-import { Code2, Clock, Users, Trophy, Loader } from "lucide-react";
+import { Code2, Clock, Users, Trophy } from "lucide-react";
 import { getDifficultyBadgeClass } from "../lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import { RecentSessionsSkeleton } from "./AppSkeletons.jsx";
 
 function RecentSessions({ sessions, isLoading }) {
   return (
@@ -15,9 +16,7 @@ function RecentSessions({ sessions, isLoading }) {
 
       {/* CONTENT */}
       {isLoading ? (
-        <div className="flex justify-center py-16">
-          <Loader className="w-8 h-8 animate-spin text-primary" />
-        </div>
+        <RecentSessionsSkeleton />
       ) : sessions.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {sessions.map((session) => {
