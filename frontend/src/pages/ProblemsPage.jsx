@@ -7,8 +7,9 @@ import { X } from "lucide-react";
 import StatsFooter from "../components/StatsFooter.jsx";
 import ProblemFilterDropdown from "../components/ProblemFilterDropdown.jsx";
 import toast from "react-hot-toast";
+import { API_BASE_URL } from "../lib/api";
 
-const API = import.meta.env.VITE_API_URL;
+const API = API_BASE_URL;
 
 const DIFFICULTY = ["easy", "medium", "hard"];
 

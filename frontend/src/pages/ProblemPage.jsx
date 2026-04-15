@@ -11,8 +11,9 @@ import CodeEditorPanel from "../components/CodeEditorPanel";
 import toast from "react-hot-toast";
 import confetti from "canvas-confetti";
 import FullScreenLoader from "../components/FullScreenLoader.jsx";
+import { API_BASE_URL } from "../lib/api";
 
-const API = import.meta.env.VITE_API_URL;
+const API = API_BASE_URL;
 
 function ProblemPage() {
   const { getToken } = useAuth();
