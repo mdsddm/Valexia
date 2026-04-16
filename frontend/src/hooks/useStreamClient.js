@@ -24,13 +24,13 @@ function useStreamClient(session, loadingSession, isHost, isParticipant) {
     let isMounted = true;
 
     const initCall = async () => {
-      if (!callId) return;
-      if (!isHost && !isParticipant) return;
-      if (sessionStatus === "completed") return;
-      
-      // Removed early return so host can connect before candidate joins
-
       try {
+        if (!callId) return;
+        if (!isHost && !isParticipant) return;
+        if (sessionStatus === "completed") return;
+
+        // Removed early return so host can connect before candidate joins
+
         const { token, userId, userName, userImage } =
           await sessionApi.getStreamToken();
 
@@ -49,7 +49,7 @@ function useStreamClient(session, loadingSession, isHost, isParticipant) {
 
         videoCall = client.call("default", callId);
         await videoCall.join({ create: true });
-        
+
         setCall(videoCall);
 
         const apiKey = import.meta.env.VITE_STREAM_API_KEY;
@@ -71,10 +71,7 @@ function useStreamClient(session, loadingSession, isHost, isParticipant) {
         }
         setChatClient(chatClientInstance);
 
-        const chatChannel = chatClientInstance.channel(
-          "messaging",
-          callId,
-        );
+        const chatChannel = chatClientInstance.channel("messaging", callId);
         await chatChannel.watch();
         setChannel(chatChannel);
       } catch (error) {

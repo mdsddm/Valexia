@@ -101,9 +101,15 @@ export const useJoinSession = () => {
       return res;
     },
 
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success("Joined session successfully!");
       queryClient.invalidateQueries({ queryKey: ["activeSessions"] });
+      // ✅ FIX: Invalidate the specific session query to ensure participant data is refreshed
+      if (data?.session?._id) {
+        queryClient.invalidateQueries({
+          queryKey: ["session", data.session._id.toString()],
+        });
+      }
     },
 
     onError: (error) => {
