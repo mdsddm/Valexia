@@ -68,7 +68,7 @@ function CodeEditorPanel({
           />
 
           <select
-            className="select select-bordered select-sm w-40 min-w-0 font-medium text-sm bg-base-200/50 hover:bg-base-200 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="select select-bordered select-sm w-40 min-w-0 font-medium text-sm bg-base-100 text-base-content hover:bg-base-100 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
             value={selectedLanguage}
             onChange={onLanguageChange}
           >

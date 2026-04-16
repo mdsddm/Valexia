@@ -11,27 +11,87 @@ import { API_BASE_URL } from "../lib/api";
 import { ProblemsTableSkeleton } from "../components/AppSkeletons.jsx";
 
 const API = API_BASE_URL;
+const PROBLEMS_CACHE_KEY = "valexia-problems-cache";
+const PROBLEMS_CACHE_TTL_MS = 30 * 60 * 1000;
 
 const DIFFICULTY = ["easy", "medium", "hard"];
 
+const getCachedProblems = () => {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const cached = localStorage.getItem(PROBLEMS_CACHE_KEY);
+    const parsed = cached ? JSON.parse(cached) : null;
+
+    if (Array.isArray(parsed)) {
+      localStorage.setItem(
+        PROBLEMS_CACHE_KEY,
+        JSON.stringify({
+          problems: parsed,
+          cachedAt: Date.now(),
+        }),
+      );
+
+      return parsed;
+    }
+
+    if (!parsed || !Array.isArray(parsed.problems)) {
+      return [];
+    }
+
+    if (typeof parsed.cachedAt === "number") {
+      const age = Date.now() - parsed.cachedAt;
+      if (age > PROBLEMS_CACHE_TTL_MS) {
+        localStorage.removeItem(PROBLEMS_CACHE_KEY);
+        return [];
+      }
+    }
+
+    return parsed.problems;
+  } catch {
+    return [];
+  }
+};
+
+const getTagsFromProblems = (problemList = []) => {
+  const tags = new Set();
+
+  problemList.forEach((problem) => {
+    problem.tags?.forEach((tag) => tags.add(tag));
+  });
+
+  return Array.from(tags);
+};
+
 const ProblemsPage = () => {
   const { getToken } = useAuth();
-  const [allProblems, setAllProblems] = useState([]);
-  const [problems, setProblems] = useState([]);
-  const [isLoadingProblems, setIsLoadingProblems] = useState(true);
+  const [cachedProblems] = useState(() => getCachedProblems());
+
+  const [allProblems, setAllProblems] = useState(cachedProblems);
+  const [problems, setProblems] = useState(cachedProblems);
+  const [isLoadingProblems, setIsLoadingProblems] = useState(
+    cachedProblems.length === 0,
+  );
 
   const [selectDSA, setSelectDSA] = useState("");
   const [selectAlgo, setSelectAlgo] = useState("");
   const [selectDifficulty, setSelectDifficulty] = useState("");
 
-  const [dataStructures, setDataStructures] = useState([]);
-  const [algorithms, setAlgorithms] = useState([]);
+  const [dataStructures, setDataStructures] = useState(() =>
+    getTagsFromProblems(cachedProblems),
+  );
+  const [algorithms, setAlgorithms] = useState(() =>
+    getTagsFromProblems(cachedProblems),
+  );
 
   // FETCH PROBLEMS
   useEffect(() => {
     const fetchProblems = async () => {
       try {
-        setIsLoadingProblems(true);
+        if (cachedProblems.length === 0) {
+          setIsLoadingProblems(true);
+        }
+
         const token = await getToken();
         const res = await fetch(`${API}/problems`, {
           headers: {
@@ -40,26 +100,37 @@ const ProblemsPage = () => {
         });
 
         const data = await res.json();
-        setAllProblems(data.problems);
-        setProblems(data.problems);
 
-        // build filter lists from tags
-        const tags = new Set();
-        data.problems.forEach((p) => p.tags.forEach((t) => tags.add(t)));
+        if (Array.isArray(data.problems)) {
+          localStorage.setItem(
+            PROBLEMS_CACHE_KEY,
+            JSON.stringify({
+              problems: data.problems,
+              cachedAt: Date.now(),
+            }),
+          );
 
-        const tagList = Array.from(tags);
+          setAllProblems(data.problems);
+          setProblems(data.problems);
 
-        setDataStructures(tagList);
-        setAlgorithms(tagList);
+          const tagList = getTagsFromProblems(data.problems);
+
+          setDataStructures(tagList);
+          setAlgorithms(tagList);
+        }
       } catch {
-        toast.error("Failed to load problems");
+        if (cachedProblems.length === 0) {
+          toast.error("Failed to load problems");
+        }
       } finally {
-        setIsLoadingProblems(false);
+        if (cachedProblems.length === 0) {
+          setIsLoadingProblems(false);
+        }
       }
     };
 
     fetchProblems();
-  }, []);
+  }, [cachedProblems.length, getToken]);
 
   // APPLY FILTERS
   const applyFilters = (
@@ -99,9 +170,12 @@ const ProblemsPage = () => {
       <div className="max-w-6xl mx-auto px-4 py-10">
         {/* HERO HEADER */}
         <div className="text-center mb-12 mt-4">
-          <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-base-content tracking-tight">Practice Problems</h1>
+          <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-base-content tracking-tight">
+            Practice Problems
+          </h1>
           <p className="text-base-content/60 max-w-2xl mx-auto text-lg">
-            Sharpen your coding skills with our curated collection of algorithm and data structure challenges.
+            Sharpen your coding skills with our curated collection of algorithm
+            and data structure challenges.
           </p>
         </div>
 
@@ -175,7 +249,9 @@ const ProblemsPage = () => {
 
               {problems.length === 0 && (
                 <div className="px-6 py-16 text-center">
-                  <p className="text-base-content/50 text-lg">No problems found matching your filters.</p>
+                  <p className="text-base-content/50 text-lg">
+                    No problems found matching your filters.
+                  </p>
                 </div>
               )}
             </div>

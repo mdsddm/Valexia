@@ -14,17 +14,200 @@ import FullScreenLoader from "../components/FullScreenLoader.jsx";
 import { API_BASE_URL } from "../lib/api";
 
 const API = API_BASE_URL;
+const PROBLEMS_CACHE_KEY = "valexia-problems-cache";
+const PROBLEMS_CACHE_TTL_MS = 30 * 60 * 1000;
+const PROBLEM_DETAIL_CACHE_KEY = "valexia-problem-detail-cache";
+const PROBLEM_DETAIL_CACHE_LIMIT = 6;
+const PROBLEM_DETAIL_CACHE_TTL_MS = 30 * 60 * 1000;
+
+const getCachedProblemsList = () => {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const cached = localStorage.getItem(PROBLEMS_CACHE_KEY);
+    const parsed = cached ? JSON.parse(cached) : null;
+
+    if (Array.isArray(parsed)) {
+      localStorage.setItem(
+        PROBLEMS_CACHE_KEY,
+        JSON.stringify({
+          problems: parsed,
+          cachedAt: Date.now(),
+        }),
+      );
+
+      return parsed;
+    }
+
+    if (!parsed || !Array.isArray(parsed.problems)) {
+      return [];
+    }
+
+    if (typeof parsed.cachedAt === "number") {
+      const age = Date.now() - parsed.cachedAt;
+      if (age > PROBLEMS_CACHE_TTL_MS) {
+        localStorage.removeItem(PROBLEMS_CACHE_KEY);
+        return [];
+      }
+    }
+
+    return parsed.problems;
+  } catch {
+    return [];
+  }
+};
+
+const getCachedProblemDetail = (problemId) => {
+  if (typeof window === "undefined" || !problemId) return null;
+
+  try {
+    const cached = localStorage.getItem(PROBLEM_DETAIL_CACHE_KEY);
+    const parsed = cached ? JSON.parse(cached) : { order: [], items: {} };
+    const order = Array.isArray(parsed.order) ? parsed.order : [];
+    const items =
+      parsed.items && typeof parsed.items === "object" ? parsed.items : {};
+    const key = String(problemId);
+    const entry = items[key] || null;
+    const problem = entry?.problem ?? entry ?? null;
+
+    if (!problem) return null;
+
+    const cachedAt = entry?.cachedAt;
+    if (typeof cachedAt === "number") {
+      const age = Date.now() - cachedAt;
+      if (age > PROBLEM_DETAIL_CACHE_TTL_MS) {
+        const nextOrder = order.filter((item) => item !== key);
+        const nextItems = nextOrder.reduce((accumulator, itemId) => {
+          const existingEntry = items[itemId];
+          if (existingEntry?.problem) {
+            accumulator[itemId] = existingEntry;
+          } else if (existingEntry) {
+            accumulator[itemId] = {
+              problem: existingEntry,
+              cachedAt: Date.now(),
+            };
+          }
+          return accumulator;
+        }, {});
+
+        localStorage.setItem(
+          PROBLEM_DETAIL_CACHE_KEY,
+          JSON.stringify({ order: nextOrder, items: nextItems }),
+        );
+
+        return null;
+      }
+    }
+
+    const nextOrder = [key, ...order.filter((item) => item !== key)].slice(
+      0,
+      PROBLEM_DETAIL_CACHE_LIMIT,
+    );
+
+    localStorage.setItem(
+      PROBLEM_DETAIL_CACHE_KEY,
+      JSON.stringify({
+        order: nextOrder,
+        items: nextOrder.reduce((accumulator, itemId) => {
+          const existingEntry = items[itemId];
+          if (!existingEntry) {
+            return accumulator;
+          }
+
+          if (itemId === key) {
+            accumulator[itemId] = {
+              problem,
+              cachedAt: Date.now(),
+            };
+            return accumulator;
+          }
+
+          if (existingEntry?.problem) {
+            accumulator[itemId] = existingEntry;
+            return accumulator;
+          }
+
+          accumulator[itemId] = {
+            problem: existingEntry,
+            cachedAt: Date.now(),
+          };
+          return accumulator;
+        }, {}),
+      }),
+    );
+
+    return problem;
+  } catch {
+    return null;
+  }
+};
+
+const storeProblemDetail = (problem) => {
+  if (typeof window === "undefined" || !problem?._id) return;
+
+  try {
+    const cached = localStorage.getItem(PROBLEM_DETAIL_CACHE_KEY);
+    const parsed = cached ? JSON.parse(cached) : { order: [], items: {} };
+    const order = Array.isArray(parsed.order) ? parsed.order : [];
+    const items =
+      parsed.items && typeof parsed.items === "object" ? parsed.items : {};
+    const key = String(problem._id);
+
+    const nextOrder = [key, ...order.filter((item) => item !== key)].slice(
+      0,
+      PROBLEM_DETAIL_CACHE_LIMIT,
+    );
+    const nextItems = nextOrder.reduce((accumulator, itemId) => {
+      const existingEntry = items[itemId];
+
+      if (itemId === key) {
+        accumulator[itemId] = {
+          problem,
+          cachedAt: Date.now(),
+        };
+        return accumulator;
+      }
+
+      if (!existingEntry) {
+        return accumulator;
+      }
+
+      if (existingEntry?.problem) {
+        accumulator[itemId] = existingEntry;
+        return accumulator;
+      }
+
+      accumulator[itemId] = {
+        problem: existingEntry,
+        cachedAt: Date.now(),
+      };
+      return accumulator;
+    }, {});
+
+    localStorage.setItem(
+      PROBLEM_DETAIL_CACHE_KEY,
+      JSON.stringify({ order: nextOrder, items: nextItems }),
+    );
+  } catch {
+    // Ignore cache write failures.
+  }
+};
 
 function ProblemPage() {
   const { getToken } = useAuth();
   const { id } = useParams();
   const navigate = useNavigate();
+  const [initialCachedProblem] = useState(() => getCachedProblemDetail(id));
 
-  const [problems, setProblems] = useState([]);
-  const [currentProblem, setCurrentProblem] = useState(null);
+  const [problems, setProblems] = useState(() => getCachedProblemsList());
+  const [currentProblem, setCurrentProblem] = useState(initialCachedProblem);
+  const currentProblemIdRef = useRef(initialCachedProblem?._id || null);
+  const loadingProblemIdRef = useRef(null);
 
   const [selectedLanguage, setSelectedLanguage] = useState("javascript");
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(
+    initialCachedProblem?.starterCode?.javascript || "",
+  );
   const [customInput, setCustomInput] = useState("");
   const [output, setOutput] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -37,8 +220,14 @@ function ProblemPage() {
   const horizontalPanelRef = useRef(null);
   const verticalPanelRef = useRef(null);
 
+  useEffect(() => {
+    currentProblemIdRef.current = currentProblem?._id || null;
+  }, [currentProblem]);
+
   // FETCH ALL PROBLEMS
   useEffect(() => {
+    if (problems.length > 0) return;
+
     const fetchProblems = async () => {
       try {
         const token = await getToken();
@@ -48,17 +237,49 @@ function ProblemPage() {
           },
         });
         const data = await res.json();
-        setProblems(data.problems);
+
+        if (Array.isArray(data.problems)) {
+          setProblems(data.problems);
+          localStorage.setItem(
+            PROBLEMS_CACHE_KEY,
+            JSON.stringify({
+              problems: data.problems,
+              cachedAt: Date.now(),
+            }),
+          );
+        }
       } catch {
         toast.error("Failed to load problems");
       }
     };
 
     fetchProblems();
-  }, []);
+  }, [getToken, problems.length]);
 
   // FETCH SINGLE PROBLEM
   useEffect(() => {
+    if (!id) return;
+
+    if (currentProblemIdRef.current === id) {
+      setCode(currentProblem?.starterCode?.[selectedLanguage] || "");
+      return;
+    }
+
+    const cachedProblem = getCachedProblemDetail(id);
+
+    if (cachedProblem) {
+      setCurrentProblem(cachedProblem);
+      setCode(cachedProblem.starterCode?.[selectedLanguage] || "");
+      return;
+    }
+
+    if (loadingProblemIdRef.current === id) {
+      return;
+    }
+
+    setCurrentProblem(null);
+    loadingProblemIdRef.current = id;
+
     const fetchProblem = async () => {
       try {
         const token = await getToken();
@@ -68,17 +289,23 @@ function ProblemPage() {
           },
         });
         const data = await res.json();
-        setCurrentProblem(data.problem);
-        const starter = data.problem.starterCode[selectedLanguage] || "";
 
-        setCode(starter);
+        if (!data.problem) {
+          throw new Error("Problem not found");
+        }
+
+        setCurrentProblem(data.problem);
+        setCode(data.problem.starterCode?.[selectedLanguage] || "");
+        storeProblemDetail(data.problem);
       } catch {
         toast.error("Problem not found");
+      } finally {
+        loadingProblemIdRef.current = null;
       }
     };
 
-    if (id) fetchProblem();
-  }, [id, selectedLanguage]);
+    fetchProblem();
+  }, [id, selectedLanguage, getToken, currentProblem?.starterCode]);
 
   // PANEL LAYOUT
   useEffect(() => {
@@ -181,7 +408,7 @@ function ProblemPage() {
         <PanelGroup
           ref={horizontalPanelRef}
           direction="horizontal"
-          className="h-full gap-2"
+          className="h-full gap-px"
         >
           <Panel
             defaultSize={40}
@@ -203,13 +430,21 @@ function ProblemPage() {
             </PanelResizeHandle>
           )}
 
-          <Panel defaultSize={60} minSize={30} className="flex flex-col min-h-0">
+          <Panel
+            defaultSize={60}
+            minSize={30}
+            className="flex flex-col min-h-0"
+          >
             <PanelGroup
               ref={verticalPanelRef}
               direction="vertical"
-              className="h-full gap-2"
+              className="h-full gap-px"
             >
-              <Panel defaultSize={70} minSize={30} className="bg-base-100 rounded-2xl overflow-hidden shadow-sm border border-base-300/50">
+              <Panel
+                defaultSize={70}
+                minSize={30}
+                className="bg-base-100 rounded-2xl overflow-hidden shadow-sm border border-base-300/50"
+              >
                 <CodeEditorPanel
                   selectedLanguage={selectedLanguage}
                   code={code}
@@ -226,12 +461,16 @@ function ProblemPage() {
                 <div className="h-1 w-8 rounded-full bg-base-content/10 group-hover:bg-primary/50 transition-colors" />
               </PanelResizeHandle>
 
-              <Panel defaultSize={30} minSize={20} className="bg-base-100 rounded-2xl overflow-hidden shadow-sm border border-base-300/50">
-                <OutputPanel 
-                   output={output} 
-                   isSuccess={isSuccess} 
-                   customInput={customInput} 
-                   setCustomInput={setCustomInput} 
+              <Panel
+                defaultSize={30}
+                minSize={20}
+                className="bg-base-100 rounded-2xl overflow-hidden shadow-sm border border-base-300/50"
+              >
+                <OutputPanel
+                  output={output}
+                  isSuccess={isSuccess}
+                  customInput={customInput}
+                  setCustomInput={setCustomInput}
                 />
               </Panel>
             </PanelGroup>
