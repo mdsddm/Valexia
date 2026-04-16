@@ -1,9 +1,17 @@
 import Editor from "@monaco-editor/react";
-import { Loader2Icon, PlayIcon, Maximize, Minimize } from "lucide-react";
+import {
+  Loader2Icon,
+  PlayIcon,
+  Maximize,
+  Minimize,
+  ShieldAlert,
+} from "lucide-react";
 import { LANGUAGE_CONFIG } from "../data/problems";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { socket } from "../lib/socket";
 import { CodeEditorSkeleton } from "./AppSkeletons.jsx";
+import toast from "react-hot-toast";
+
 function CodeEditorPanel({
   sessionId,
   selectedLanguage,
@@ -14,33 +22,61 @@ function CodeEditorPanel({
   onRunCode,
   isMax,
   toggleIsMax,
+  antiCheatEnabled = false,
 }) {
+  const LIGHT_THEME = "caramellatte";
   const [editorTheme, setEditorTheme] = useState("vs-dark");
+  const antiCheatCleanupRef = useRef(null);
+  const lastWarningTimeRef = useRef(0);
 
-  const updateEditorTheme = () => {
-    const currentTheme = document.documentElement.getAttribute("data-theme");
-    const lightThemes = ["corporate", "lofi", "caramellatte", "lemonade"];
+  const showAntiCheatToast = (message) => {
+    const now = Date.now();
+    if (now - lastWarningTimeRef.current < 1200) return;
+    lastWarningTimeRef.current = now;
 
-    if (currentTheme === "black") {
-      setEditorTheme("hc-black");
-    } else if (lightThemes.includes(currentTheme)) {
-      setEditorTheme("vs");
-    } else {
-      setEditorTheme("vs-dark");
-    }
+    toast.custom(
+      (t) => (
+        <div
+          className={`pointer-events-auto flex items-start gap-3 rounded-xl border border-warning/30 bg-base-100 px-4 py-3 shadow-lg transition-all duration-200 ${
+            t.visible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"
+          }`}
+        >
+          <div className="mt-0.5 rounded-lg bg-warning/15 p-1.5 text-warning">
+            <ShieldAlert className="size-4" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-base-content">
+              Anti-Cheat Active
+            </p>
+            <p className="text-xs text-base-content/70 mt-0.5">{message}</p>
+          </div>
+        </div>
+      ),
+      {
+        id: "anti-cheat-warning",
+        duration: 1800,
+        position: "top-center",
+      },
+    );
   };
 
   useEffect(() => {
-    function callUseEffect() {
-      updateEditorTheme();
-      window.addEventListener("theme-change", updateEditorTheme);
+    const updateEditorTheme = (event) => {
+      const nextTheme =
+        event?.detail?.theme ||
+        document.documentElement.getAttribute("data-theme") ||
+        "forest";
 
-      return () => {
-        window.removeEventListener("theme-change", updateEditorTheme);
-      };
-    }
-    callUseEffect();
-  }, [code, isMax]);
+      setEditorTheme(nextTheme === LIGHT_THEME ? "vs" : "vs-dark");
+    };
+
+    updateEditorTheme();
+    window.addEventListener("theme-change", updateEditorTheme);
+
+    return () => {
+      window.removeEventListener("theme-change", updateEditorTheme);
+    };
+  }, []);
   useEffect(() => {
     if (!sessionId) return;
 
@@ -54,6 +90,12 @@ function CodeEditorPanel({
       socket.off("code-update");
     };
   }, [onCodeChange, sessionId]);
+
+  useEffect(() => {
+    return () => {
+      antiCheatCleanupRef.current?.();
+    };
+  }, []);
 
   return (
     <div className="flex flex-col flex-1 min-h-0 bg-base-100 w-full h-full relative">
@@ -81,6 +123,12 @@ function CodeEditorPanel({
         </div>
 
         <div className="flex items-center gap-4">
+          {antiCheatEnabled && (
+            <div className="badge badge-warning badge-outline hidden md:inline-flex">
+              Paste Blocked
+            </div>
+          )}
+
           {/* Run Button */}
           <button
             className="btn btn-primary btn-sm gap-2 shrink-0 whitespace-nowrap shadow-md shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all"
@@ -132,7 +180,66 @@ function CodeEditorPanel({
               });
             }}
             theme={editorTheme}
-            onMount={(editor) => {
+            onMount={(editor, monaco) => {
+              antiCheatCleanupRef.current?.();
+
+              if (antiCheatEnabled) {
+                const domNode = editor.getDomNode();
+
+                const preventPasteAction = (event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  showAntiCheatToast(
+                    "Pasting code is disabled for this interview.",
+                  );
+                };
+
+                const preventDropAction = (event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  showAntiCheatToast(
+                    "Drag and drop is disabled in interview mode.",
+                  );
+                };
+
+                const blockPasteCommand = editor.addCommand(
+                  monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV,
+                  () =>
+                    showAntiCheatToast(
+                      "Pasting code is disabled for this interview.",
+                    ),
+                );
+
+                const blockPasteHistoryCommand = editor.addCommand(
+                  monaco.KeyMod.CtrlCmd |
+                    monaco.KeyMod.Shift |
+                    monaco.KeyCode.KeyV,
+                  () =>
+                    showAntiCheatToast(
+                      "Pasting code is disabled for this interview.",
+                    ),
+                );
+
+                domNode?.addEventListener("paste", preventPasteAction, true);
+                domNode?.addEventListener("drop", preventDropAction, true);
+
+                antiCheatCleanupRef.current = () => {
+                  domNode?.removeEventListener(
+                    "paste",
+                    preventPasteAction,
+                    true,
+                  );
+                  domNode?.removeEventListener("drop", preventDropAction, true);
+
+                  if (typeof blockPasteCommand === "function") {
+                    blockPasteCommand();
+                  }
+                  if (typeof blockPasteHistoryCommand === "function") {
+                    blockPasteHistoryCommand();
+                  }
+                };
+              }
+
               requestAnimationFrame(() => editor.layout());
             }}
             options={{

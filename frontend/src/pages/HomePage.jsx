@@ -36,10 +36,10 @@ const HomePage = () => {
             </div>
           </Link>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-3">
             {/* AUTH BUTTON */}
             <SignInButton mode="modal">
-              <button className="btn btn-primary btn-sm shadow-sm hover:shadow-md hover:scale-105 transition-all duration-200">
+              <button className="btn btn-primary btn-sm h-9 min-h-0 px-4 shadow-sm hover:shadow-md transition-all duration-200 rounded-xl">
                 Get Started
                 <ArrowRightIcon className="size-4 ml-1" />
               </button>

@@ -29,6 +29,21 @@ export const sessionApi = {
     const response = await axiosInstance.post(`/sessions/${id}/end`);
     return response.data;
   },
+  generateSessionAnalysis: async (id) => {
+    const response = await axiosInstance.post(`/sessions/${id}/analyze`);
+    return response.data;
+  },
+  getSessionAnalysis: async (id) => {
+    const response = await axiosInstance.get(`/sessions/${id}/analysis`);
+    return response.data;
+  },
+  submitManualSessionAnalysis: async (id, payload) => {
+    const response = await axiosInstance.post(
+      `/sessions/${id}/analysis/manual`,
+      payload,
+    );
+    return response.data;
+  },
   deleteSession: async (id) => {
     const response = await axiosInstance.delete(`/sessions/${id}`);
     return response.data;

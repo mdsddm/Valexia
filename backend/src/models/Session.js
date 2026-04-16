@@ -42,6 +42,14 @@ const sessionSchema = new mongoose.Schema(
       validate: {
         validator: function (value) {
           if (this.type === "scheduled") {
+            // Only enforce future date when creating or when schedule-related fields are being edited.
+            if (
+              !this.isNew &&
+              !this.isModified("scheduledAt") &&
+              !this.isModified("type")
+            ) {
+              return true;
+            }
             return value && value.getTime() > Date.now();
           }
           return true;
@@ -167,6 +175,96 @@ const sessionSchema = new mongoose.Schema(
     feedback: {
       rating: { type: Number, min: 1, max: 5 },
       comments: String,
+    },
+
+    // 🤖 AI session analysis
+    aiAnalysis: {
+      status: {
+        type: String,
+        enum: ["not_generated", "generated", "failed"],
+        default: "not_generated",
+      },
+      overallScore: {
+        type: Number,
+        min: 0,
+        max: 100,
+      },
+      recommendation: {
+        type: String,
+        enum: ["hire", "lean_hire", "no_hire", "insufficient_data"],
+        default: "insufficient_data",
+      },
+      summary: {
+        type: String,
+        default: "",
+      },
+      strengths: {
+        type: [String],
+        default: [],
+      },
+      improvements: {
+        type: [String],
+        default: [],
+      },
+      rubric: {
+        problemSolving: { type: Number, min: 0, max: 100 },
+        codeQuality: { type: Number, min: 0, max: 100 },
+        communication: { type: Number, min: 0, max: 100 },
+        debugging: { type: Number, min: 0, max: 100 },
+        timeManagement: { type: Number, min: 0, max: 100 },
+      },
+      manualDetails: {
+        confidence: {
+          type: Number,
+          min: 0,
+          max: 100,
+          default: 0,
+        },
+        interviewerNotes: {
+          type: String,
+          default: "",
+        },
+        questionOutcomes: {
+          type: [
+            {
+              problemId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Problem",
+              },
+              title: {
+                type: String,
+                default: "",
+              },
+              solved: {
+                type: String,
+                enum: ["yes", "partial", "no"],
+                default: "no",
+              },
+              notes: {
+                type: String,
+                default: "",
+              },
+            },
+          ],
+          default: [],
+        },
+      },
+      redFlags: {
+        type: [String],
+        default: [],
+      },
+      model: {
+        type: String,
+        default: "",
+      },
+      generatedAt: {
+        type: Date,
+        default: null,
+      },
+      errorMessage: {
+        type: String,
+        default: "",
+      },
     },
   },
   { timestamps: true },
