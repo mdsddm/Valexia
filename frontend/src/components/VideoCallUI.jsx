@@ -6,7 +6,7 @@ import {
   useCall,
 } from "@stream-io/video-react-sdk";
 import { MessageSquareIcon, UsersIcon, XIcon } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import {
   Channel,
@@ -28,11 +28,21 @@ function VideoCallUI({ chatClient, channel, isMax }) {
   const callingState = useCallCallingState();
   const participantCount = useParticipantCount();
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const initializedCallRef = useRef(null);
 
   useEffect(() => {
-    if (call) {
-      call.camera.disable().catch(e => console.error(e));
-      call.microphone.disable().catch(e => console.error(e));
+    if (!call) return;
+
+    const callIdentifier = call.id || call.cid || "default";
+    if (initializedCallRef.current === callIdentifier) return;
+
+    initializedCallRef.current = callIdentifier;
+
+    if (call.camera?.disable) {
+      call.camera.disable().catch((e) => console.error(e));
+    }
+    if (call.microphone?.disable) {
+      call.microphone.disable().catch((e) => console.error(e));
     }
   }, [call]);
 
@@ -48,21 +58,20 @@ function VideoCallUI({ chatClient, channel, isMax }) {
     >
       {/* VIDEO SECTION */}
       <div className="flex-1 flex flex-col relative rounded-xl overflow-hidden bg-base-300 border border-base-300 min-h-0">
-        
         {/* Floating Header */}
         <div className="absolute top-3 right-3 z-10 flex gap-2">
           <div className="bg-base-100/80 backdrop-blur-md px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-sm border border-base-300">
             <UsersIcon className="w-4 h-4 text-primary" />
-            <span className="font-semibold text-sm">
-              {participantCount}
-            </span>
+            <span className="font-semibold text-sm">{participantCount}</span>
           </div>
 
           {chatClient && channel && (
             <button
               onClick={() => setIsChatOpen(!isChatOpen)}
               className={`btn btn-sm btn-circle shadow-sm backdrop-blur-md border ${
-                isChatOpen ? "btn-primary border-primary" : "bg-base-100/80 border-base-300 hover:bg-base-200"
+                isChatOpen
+                  ? "btn-primary border-primary"
+                  : "bg-base-100/80 border-base-300 hover:bg-base-200"
               }`}
               title={isChatOpen ? "Hide chat" : "Show chat"}
             >

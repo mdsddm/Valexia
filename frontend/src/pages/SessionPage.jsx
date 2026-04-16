@@ -42,21 +42,25 @@ function SessionPage() {
 
   const joinSessionMutation = useJoinSession();
   const endSessionMutation = useEndSession();
+  const endSessionMutationRef = useRef(endSessionMutation);
 
   const session = sessionData?.session;
 
+  useEffect(() => {
+    endSessionMutationRef.current = endSessionMutation;
+  }, [endSessionMutation]);
+
   const isHost = session?.host?.clerkId === user?.id;
   const isParticipant = session?.participant?.clerkId === user?.id;
-
-
 
   const { call, channel, chatClient, isInitializingCall, streamClient } =
     useStreamClient(session, loadingSession, isHost, isParticipant);
 
   const [currentProblemIndex, setCurrentProblemIndex] = useState(0);
-  const problemData = session?.problems?.length > currentProblemIndex 
-    ? session.problems[currentProblemIndex] 
-    : session?.problems?.[0] || null;
+  const problemData =
+    session?.problems?.length > currentProblemIndex
+      ? session.problems[currentProblemIndex]
+      : session?.problems?.[0] || null;
 
   const [selectedLanguage, setSelectedLanguage] = useState("javascript");
   const [code, setCode] = useState("");
@@ -151,7 +155,7 @@ function SessionPage() {
 
       if (remaining === 0) {
         if (isHost && session.status !== "completed") {
-          endSessionMutation.mutate(id, {
+          endSessionMutationRef.current.mutate(id, {
             onSuccess: () => navigate("/dashboard"),
           });
         }
@@ -162,7 +166,14 @@ function SessionPage() {
     const interval = setInterval(updateTimer, 1000);
 
     return () => clearInterval(interval);
-  }, [session?.startedAt, session?.duration, session?.status, isHost, endSessionMutation, id, navigate]);
+  }, [
+    session?.startedAt,
+    session?.duration,
+    session?.status,
+    isHost,
+    id,
+    navigate,
+  ]);
 
   const formatTime = (ms) => {
     if (ms === null) return "--:--";
@@ -170,7 +181,8 @@ function SessionPage() {
     const h = Math.floor(totalSeconds / 3600);
     const m = Math.floor((totalSeconds % 3600) / 60);
     const s = totalSeconds % 60;
-    if (h > 0) return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+    if (h > 0)
+      return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
@@ -179,14 +191,18 @@ function SessionPage() {
     if (!problemData) return;
 
     if (
-        lastProblemLangRef.current.problemId === problemData._id &&
-        lastProblemLangRef.current.lang === selectedLanguage
-    ) return;
+      lastProblemLangRef.current.problemId === problemData._id &&
+      lastProblemLangRef.current.lang === selectedLanguage
+    )
+      return;
 
     const starter = problemData?.starterCode?.[selectedLanguage] || "";
     setCode(starter);
 
-    lastProblemLangRef.current = { problemId: problemData._id, lang: selectedLanguage };
+    lastProblemLangRef.current = {
+      problemId: problemData._id,
+      lang: selectedLanguage,
+    };
   }, [problemData, selectedLanguage]);
 
   /* PANEL LAYOUT */
@@ -257,34 +273,38 @@ function SessionPage() {
   return (
     <div className="h-screen bg-base-100 flex flex-col">
       <Navbar />
-      
+
       {/* Session Toolbar */}
       {session?.startedAt && (
-         <div className="bg-base-100 border-b border-base-300 py-3 px-6 flex justify-between items-center shadow-sm z-10 shrink-0">
-            <div className="flex items-center gap-3 w-1/3">
-                 <div className="badge badge-primary badge-outline font-semibold gap-1.5 p-3">
-                     <span className={`w-2 h-2 rounded-full ${session.status === 'active' ? 'bg-success animate-pulse' : 'bg-base-300'}`}></span>
-                     Live Session
-                 </div>
-                 <span className="text-sm text-base-content/70 font-medium hidden sm:block">
-                     {isHost ? "Host" : "Candidate"}
-                 </span>
+        <div className="bg-base-100 border-b border-base-300 py-3 px-6 flex justify-between items-center shadow-sm z-10 shrink-0">
+          <div className="flex items-center gap-3 w-1/3">
+            <div className="badge badge-primary badge-outline font-semibold gap-1.5 p-3">
+              <span
+                className={`w-2 h-2 rounded-full ${session.status === "active" ? "bg-success animate-pulse" : "bg-base-300"}`}
+              ></span>
+              Live Session
             </div>
-            
-            <div className={`font-mono font-bold text-xl w-1/3 text-center ${timeLeft !== null && timeLeft < 300000 ? "text-error animate-pulse" : "text-base-content"}`}>
-              {timeLeft === 0 ? "Ended" : formatTime(timeLeft)}
-            </div>
+            <span className="text-sm text-base-content/70 font-medium hidden sm:block">
+              {isHost ? "Host" : "Candidate"}
+            </span>
+          </div>
 
-            <div className="flex justify-end w-1/3">
-                <button 
-                  onClick={handleEndSession} 
-                  className="btn btn-error py-0 min-h-0 h-9 px-4 text-sm font-semibold rounded-md shadow-sm hover:shadow-md transition-shadow gap-2"
-                >
-                  <LogOutIcon className="w-4 h-4" />
-                  End Session
-                </button>
-            </div>
-         </div>
+          <div
+            className={`font-mono font-bold text-xl w-1/3 text-center ${timeLeft !== null && timeLeft < 300000 ? "text-error animate-pulse" : "text-base-content"}`}
+          >
+            {timeLeft === 0 ? "Ended" : formatTime(timeLeft)}
+          </div>
+
+          <div className="flex justify-end w-1/3">
+            <button
+              onClick={handleEndSession}
+              className="btn btn-error py-0 min-h-0 h-9 px-4 text-sm font-semibold rounded-md shadow-sm hover:shadow-md transition-shadow gap-2"
+            >
+              <LogOutIcon className="w-4 h-4" />
+              End Session
+            </button>
+          </div>
+        </div>
       )}
 
       <div className="flex-1 min-h-0 relative">
@@ -299,15 +319,15 @@ function SessionPage() {
             <div className="flex flex-col h-full bg-base-100">
               {/* TAB BAR */}
               <div className="flex border-b border-base-300 bg-base-100 shrink-0">
-                <button 
-                  className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === 'code' ? 'bg-base-200 border-b-2 border-primary text-primary' : 'text-base-content/70 hover:bg-base-200/50 hover:text-base-content'}`}
-                  onClick={() => setActiveTab('code')}
+                <button
+                  className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === "code" ? "bg-base-200 border-b-2 border-primary text-primary" : "text-base-content/70 hover:bg-base-200/50 hover:text-base-content"}`}
+                  onClick={() => setActiveTab("code")}
                 >
                   Code & Problem
                 </button>
-                <button 
-                  className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === 'whiteboard' ? 'bg-base-200 border-b-2 border-primary text-primary' : 'text-base-content/70 hover:bg-base-200/50 hover:text-base-content'}`}
-                  onClick={() => setActiveTab('whiteboard')}
+                <button
+                  className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === "whiteboard" ? "bg-base-200 border-b-2 border-primary text-primary" : "text-base-content/70 hover:bg-base-200/50 hover:text-base-content"}`}
+                  onClick={() => setActiveTab("whiteboard")}
                 >
                   Whiteboard
                 </button>
@@ -315,7 +335,12 @@ function SessionPage() {
 
               {/* TAB CONTENT */}
               <div className="flex-1 min-h-0 relative">
-                <div style={{ display: activeTab === "code" ? "block" : "none", height: "100%" }}>
+                <div
+                  style={{
+                    display: activeTab === "code" ? "block" : "none",
+                    height: "100%",
+                  }}
+                >
                   <PanelGroup ref={verticalPanelRef} direction="vertical">
                     <Panel defaultSize={50}>
                       <div className="p-6 flex flex-col h-full gap-4 relative overflow-hidden">
@@ -340,18 +365,38 @@ function SessionPage() {
                         <div className="flex-1 overflow-y-auto pr-2 pb-10">
                           {problemData?.description?.text && (
                             <div className="prose prose-sm prose-invert max-w-none text-base-content">
-                              <p className="whitespace-pre-wrap">{problemData.description.text}</p>
+                              <p className="whitespace-pre-wrap">
+                                {problemData.description.text}
+                              </p>
                             </div>
                           )}
                           {problemData?.examples?.length > 0 && (
                             <div className="mt-6 space-y-4">
-                              <h3 className="text-lg font-semibold border-b border-base-300 pb-2">Examples</h3>
+                              <h3 className="text-lg font-semibold border-b border-base-300 pb-2">
+                                Examples
+                              </h3>
                               {problemData.examples.map((ex, i) => (
-                                <div key={i} className="bg-base-200 p-4 rounded-lg">
-                                  <p><strong>Input:</strong> <span className="font-mono text-sm">{ex.input}</span></p>
-                                  <p><strong>Output:</strong> <span className="font-mono text-sm">{ex.output}</span></p>
+                                <div
+                                  key={i}
+                                  className="bg-base-200 p-4 rounded-lg"
+                                >
+                                  <p>
+                                    <strong>Input:</strong>{" "}
+                                    <span className="font-mono text-sm">
+                                      {ex.input}
+                                    </span>
+                                  </p>
+                                  <p>
+                                    <strong>Output:</strong>{" "}
+                                    <span className="font-mono text-sm">
+                                      {ex.output}
+                                    </span>
+                                  </p>
                                   {ex.explanation && (
-                                    <p className="mt-2 text-base-content/80"><strong>Explanation:</strong> {ex.explanation}</p>
+                                    <p className="mt-2 text-base-content/80">
+                                      <strong>Explanation:</strong>{" "}
+                                      {ex.explanation}
+                                    </p>
                                   )}
                                 </div>
                               ))}
@@ -382,10 +427,10 @@ function SessionPage() {
                         <PanelResizeHandle />
 
                         <Panel>
-                          <OutputPanel 
-                             output={output} 
-                             customInput={customInput} 
-                             setCustomInput={setCustomInput} 
+                          <OutputPanel
+                            output={output}
+                            customInput={customInput}
+                            setCustomInput={setCustomInput}
                           />
                         </Panel>
                       </PanelGroup>
@@ -408,7 +453,7 @@ function SessionPage() {
             <div className="h-full w-full">
               {isInitializingCall ? (
                 <VideoCallSkeleton />
-              ) : !call ? (
+              ) : !call || !streamClient ? (
                 <div className="h-full w-full flex items-center justify-center">
                   <PhoneOffIcon className="w-10 h-10 text-error" />
                 </div>

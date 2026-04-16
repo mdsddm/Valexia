@@ -17,10 +17,12 @@ function useStreamClient(session, loadingSession, isHost, isParticipant) {
   const hasParticipant = !!session?.participant;
   const callId = session?.callId;
   const sessionStatus = session?.status;
+  const streamApiKey = import.meta.env.VITE_STREAM_API_KEY;
 
   useEffect(() => {
     let videoCall = null;
     let chatClientInstance = null;
+    let chatChannel = null;
     let isMounted = true;
 
     const initCall = async () => {
@@ -28,6 +30,9 @@ function useStreamClient(session, loadingSession, isHost, isParticipant) {
         if (!callId) return;
         if (!isHost && !isParticipant) return;
         if (sessionStatus === "completed") return;
+        if (!streamApiKey) {
+          throw new Error("Missing VITE_STREAM_API_KEY");
+        }
 
         // Removed early return so host can connect before candidate joins
 
@@ -45,15 +50,25 @@ function useStreamClient(session, loadingSession, isHost, isParticipant) {
           token,
         );
 
+        if (!isMounted) {
+          await disconnectStreamClient();
+          return;
+        }
+
         setStreamClient(client);
 
         videoCall = client.call("default", callId);
         await videoCall.join({ create: true });
 
+        if (!isMounted) {
+          await videoCall.leave();
+          await disconnectStreamClient();
+          return;
+        }
+
         setCall(videoCall);
 
-        const apiKey = import.meta.env.VITE_STREAM_API_KEY;
-        chatClientInstance = StreamChat.getInstance(apiKey);
+        chatClientInstance = StreamChat.getInstance(streamApiKey);
 
         if (chatClientInstance.userID && chatClientInstance.userID !== userId) {
           await chatClientInstance.disconnectUser();
@@ -69,14 +84,25 @@ function useStreamClient(session, loadingSession, isHost, isParticipant) {
             token,
           );
         }
+        if (!isMounted) return;
         setChatClient(chatClientInstance);
 
-        const chatChannel = chatClientInstance.channel("messaging", callId);
+        chatChannel = chatClientInstance.channel("messaging", callId);
         await chatChannel.watch();
+        if (!isMounted) {
+          await chatChannel.stopWatching();
+          return;
+        }
         setChannel(chatChannel);
       } catch (error) {
         toast.error("Failed to join video call");
         console.error("Error init call", error);
+        if (isMounted) {
+          setStreamClient(null);
+          setCall(null);
+          setChatClient(null);
+          setChannel(null);
+        }
       } finally {
         if (isMounted) setIsInitializingCall(false);
       }
@@ -91,6 +117,7 @@ function useStreamClient(session, loadingSession, isHost, isParticipant) {
       (async () => {
         try {
           if (videoCall) await videoCall.leave();
+          if (chatChannel) await chatChannel.stopWatching();
           // Avoid disconnecting chat on unmount to prevent Strict Mode tears
           // StreamChat.getInstance() manages its own connection well across remounts
           await disconnectStreamClient();
@@ -99,7 +126,14 @@ function useStreamClient(session, loadingSession, isHost, isParticipant) {
         }
       })();
     };
-  }, [callId, sessionStatus, loadingSession, isHost, isParticipant]);
+  }, [
+    callId,
+    sessionStatus,
+    loadingSession,
+    isHost,
+    isParticipant,
+    streamApiKey,
+  ]);
 
   return {
     streamClient,

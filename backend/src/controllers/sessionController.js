@@ -8,6 +8,12 @@ import bcrypt from "bcryptjs";
 // =======================
 export async function createSession(req, res) {
   try {
+    if (!chatClient || !streamClient) {
+      return res
+        .status(503)
+        .json({ message: "Stream service is not configured" });
+    }
+
     const {
       type = "live",
       scheduledAt,
@@ -167,6 +173,12 @@ export async function getSessionById(req, res) {
 // =======================
 export async function joinSession(req, res) {
   try {
+    if (!chatClient) {
+      return res
+        .status(503)
+        .json({ message: "Stream service is not configured" });
+    }
+
     const { id } = req.params;
     const { password, topics } = req.body;
 
@@ -215,13 +227,19 @@ export async function joinSession(req, res) {
     const problems = await Problem.aggregate([
       // If we want to strictly match topics, un-comment the next line.
       // For now, randomly select based on questionCount to fulfill the generic requirements:
-      { $sample: { size: session.questionCount || 2 } }
+      { $sample: { size: session.questionCount || 2 } },
     ]);
     const problemIds = problems.map((p) => p._id);
 
     const updatedSession = await Session.findOneAndUpdate(
       { _id: id, participant: null },
-      { participant: userId, status: "active", chosen_topic: topics, problems: problemIds, startedAt: Date.now() },
+      {
+        participant: userId,
+        status: "active",
+        chosen_topic: topics,
+        problems: problemIds,
+        startedAt: Date.now(),
+      },
       { new: true, runValidators: true },
     );
 
@@ -245,6 +263,12 @@ export async function joinSession(req, res) {
 // =======================
 export async function endSession(req, res) {
   try {
+    if (!chatClient || !streamClient) {
+      return res
+        .status(503)
+        .json({ message: "Stream service is not configured" });
+    }
+
     const { id } = req.params;
     const userId = req.user._id;
 
@@ -288,6 +312,12 @@ export async function endSession(req, res) {
 // =======================
 export async function deleteSession(req, res) {
   try {
+    if (!chatClient || !streamClient) {
+      return res
+        .status(503)
+        .json({ message: "Stream service is not configured" });
+    }
+
     const { id } = req.params;
     const userId = req.user._id;
 
