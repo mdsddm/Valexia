@@ -23,6 +23,7 @@ import VideoCallUI from "../components/VideoCallUI.jsx";
 import { API_BASE_URL } from "../lib/api";
 import FullScreenLoader from "../components/FullScreenLoader.jsx";
 import { VideoCallSkeleton } from "../components/AppSkeletons.jsx";
+import ConfirmModal from "../components/ConfirmModal.jsx";
 
 function SessionPage() {
   const navigate = useNavigate();
@@ -74,6 +75,7 @@ function SessionPage() {
 
   const [timeLeft, setTimeLeft] = useState(null);
   const [activeTab, setActiveTab] = useState("code");
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
 
   const hasJoined = useRef(false);
   const lastProblemLangRef = useRef({ problemId: null, lang: null });
@@ -259,12 +261,26 @@ function SessionPage() {
 
   /* END SESSION */
   const handleEndSession = () => {
-    if (confirm("End session for everyone?")) {
-      endSessionMutation.mutate(id, {
-        onSuccess: () => navigate("/dashboard"),
-      });
-    }
+    setShowEndConfirm(true);
   };
+
+  const handleConfirmEndSession = () => {
+    endSessionMutation.mutate(id, {
+      onSuccess: () => {
+        setShowEndConfirm(false);
+        navigate("/dashboard");
+      },
+    });
+  };
+
+  const endConfirmTitle = isHost
+    ? "End Interview for Everyone?"
+    : "Submit and End Your Interview?";
+  const endConfirmMessage = isHost
+    ? "This will end the interview for both host and candidate. This action cannot be undone."
+    : `You still have ${formatTime(timeLeft)} left. Do you still want to end the interview now?`;
+  const endConfirmLabel = isHost ? "End Interview" : "Submit & End";
+  const endConfirmLoadingLabel = isHost ? "Ending..." : "Submitting...";
 
   if (loadingSession && !session) {
     return <FullScreenLoader />;
@@ -296,13 +312,16 @@ function SessionPage() {
           </div>
 
           <div className="flex justify-end w-1/3">
-            <button
-              onClick={handleEndSession}
-              className="btn btn-error py-0 min-h-0 h-9 px-4 text-sm font-semibold rounded-md shadow-sm hover:shadow-md transition-shadow gap-2"
-            >
-              <LogOutIcon className="w-4 h-4" />
-              End Session
-            </button>
+            {(isHost || isParticipant) && (
+              <button
+                onClick={handleEndSession}
+                disabled={endSessionMutation.isPending}
+                className="btn btn-error py-0 min-h-0 h-9 px-4 text-sm font-semibold rounded-md shadow-sm hover:shadow-md transition-shadow gap-2"
+              >
+                <LogOutIcon className="w-4 h-4" />
+                {isHost ? "End Session" : "Submit & End"}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -421,6 +440,7 @@ function SessionPage() {
                             onRunCode={handleRunCode}
                             isMax={isMax}
                             toggleIsMax={toggleIsMax}
+                            antiCheatEnabled={isParticipant && !isHost}
                           />
                         </Panel>
 
@@ -474,6 +494,18 @@ function SessionPage() {
           </Panel>
         </PanelGroup>
       </div>
+
+      <ConfirmModal
+        isOpen={showEndConfirm}
+        onClose={() => setShowEndConfirm(false)}
+        onConfirm={handleConfirmEndSession}
+        loading={endSessionMutation.isPending}
+        title={endConfirmTitle}
+        message={endConfirmMessage}
+        confirmLabel={endConfirmLabel}
+        loadingLabel={endConfirmLoadingLabel}
+        tone="danger"
+      />
     </div>
   );
 }

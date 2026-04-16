@@ -1,13 +1,19 @@
 import { useEffect, useState } from "react";
-import { themes } from "../lib/themes.js";
-import { CheckCircle, Palette, ChevronDown } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
+
+const DARK_THEME = "forest";
+const LIGHT_THEME = "caramellatte";
+
+const normalizeTheme = (value) => {
+  return value === LIGHT_THEME ? LIGHT_THEME : DARK_THEME;
+};
 
 const Theme = () => {
   const [theme, setTheme] = useState(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("theme") || "forest";
+      return normalizeTheme(localStorage.getItem("theme") || DARK_THEME);
     }
-    return "forest";
+    return DARK_THEME;
   });
 
   useEffect(() => {
@@ -20,38 +26,31 @@ const Theme = () => {
     window.dispatchEvent(event);
   }, [theme]);
 
+  const isLight = theme === LIGHT_THEME;
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === LIGHT_THEME ? DARK_THEME : LIGHT_THEME));
+  };
+
   return (
-    <div className="dropdown dropdown-end">
-      <div
-        tabIndex={0}
-        role="button"
-        className="group flex items-center gap-2 px-3 py-2 rounded-md text-sm bg-primary/10 text-primary hover:bg-primary hover:text-accent-content transition-all duration-200 cursor-pointer"
-      >
-        <Palette className="size-5 md:hidden" />
+    <button
+      type="button"
+      onClick={toggleTheme}
+      className="group relative grid size-9 place-items-center rounded-xl border border-base-300 bg-base-200/70 text-base-content/80 shadow-sm transition-all duration-300 hover:border-primary/40 hover:text-primary hover:shadow-md"
+      aria-label={`Switch to ${isLight ? "dark" : "light"} theme`}
+      title={`Switch to ${isLight ? "dark" : "light"} theme`}
+    >
+      <span className="absolute inset-0 rounded-xl bg-linear-to-br from-primary/10 to-secondary/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-        <div className="hidden md:flex items-center gap-1">
-          <span className="font-medium">Theme</span>
-          <ChevronDown className="size-3.5 transition-transform duration-200 group-focus:rotate-180" />
-        </div>
-      </div>
-
-      <ul
-        tabIndex={0}
-        className="dropdown-content menu bg-base-200 mt-1 rounded-md z-10 w-44 p-1.5 shadow-xl"
-      >
-        {themes.map((themeObj) => (
-          <li key={themeObj.value}>
-            <button
-              onClick={() => setTheme(themeObj.value)}
-              className="flex items-center justify-between w-full px-3 py-1.5 rounded-md text-sm hover:bg-primary/80 hover:text-primary-content"
-            >
-              <span>{themeObj.name}</span>
-              {theme === themeObj.value && <CheckCircle size={16} />}
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
+      <Sun
+        className={`absolute inset-0 m-auto size-4.5 transition-all duration-500 ${isLight ? "-rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100"}`}
+        strokeWidth={2.1}
+      />
+      <Moon
+        className={`absolute inset-0 m-auto size-4.5 transition-all duration-500 ${isLight ? "rotate-0 scale-100 opacity-100" : "rotate-90 scale-0 opacity-0"}`}
+        strokeWidth={2.1}
+      />
+    </button>
   );
 };
 

@@ -8,21 +8,25 @@ import HomePage from "./pages/HomePage.jsx";
 import ProblemPage from "./pages/ProblemPage.jsx";
 import ProblemsPage from "./pages/ProblemsPage.jsx";
 import SessionPage from "./pages/SessionPage.jsx";
+import SessionAnalysisPage from "./pages/SessionAnalysisPage.jsx";
 import NotFound from "./pages/NotFound.jsx";
 import axiosInstance from "./lib/axios.js";
+import SessionAnalysisErrorBoundary from "./components/SessionAnalysisErrorBoundary.jsx";
 
 function App() {
   const { isSignedIn, isLoaded } = useUser();
   const { getToken } = useAuth();
 
   useEffect(() => {
-    const reqInterceptor = axiosInstance.interceptors.request.use(async (config) => {
-      const token = await getToken();
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    });
+    const reqInterceptor = axiosInstance.interceptors.request.use(
+      async (config) => {
+        const token = await getToken();
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+      },
+    );
 
     return () => {
       axiosInstance.interceptors.request.eject(reqInterceptor);
@@ -53,6 +57,18 @@ function App() {
         <Route
           path="/session/:id"
           element={isSignedIn ? <SessionPage /> : <Navigate to={"/"} />}
+        />
+        <Route
+          path="/session/:id/analysis"
+          element={
+            isSignedIn ? (
+              <SessionAnalysisErrorBoundary>
+                <SessionAnalysisPage />
+              </SessionAnalysisErrorBoundary>
+            ) : (
+              <Navigate to={"/"} />
+            )
+          }
         />
         <Route path="*" element={<NotFound />} />
       </Routes>

@@ -87,6 +87,79 @@ export const useSessionById = (id) => {
 };
 
 /* =========================
+   SESSION ANALYSIS
+========================= */
+export const useSessionAnalysis = (id) => {
+  return useQuery({
+    queryKey: ["sessionAnalysis", id],
+    queryFn: () => sessionApi.getSessionAnalysis(id),
+    enabled: !!id,
+  });
+};
+
+export const useGenerateSessionAnalysis = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: ["generateSessionAnalysis"],
+    mutationFn: sessionApi.generateSessionAnalysis,
+
+    onSuccess: (data, sessionId) => {
+      if (data?.manualRequired) {
+        toast("AI quota exceeded. Switched to manual analysis mode.");
+      } else {
+        toast.success("Analysis generated successfully");
+      }
+      queryClient.invalidateQueries({
+        queryKey: ["sessionAnalysis", sessionId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+      queryClient.invalidateQueries({ queryKey: ["myRecentSessions"] });
+    },
+
+    onError: (error) => {
+      const apiMessage =
+        error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        error?.message ||
+        "";
+
+      if (/insufficient_quota|quota/i.test(apiMessage)) {
+        toast("AI quota exceeded. Please use manual analysis.");
+        return;
+      }
+
+      toast.error(
+        "AI analysis failed. Please try again or use manual analysis.",
+      );
+    },
+  });
+};
+
+export const useSubmitManualSessionAnalysis = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: ["submitManualSessionAnalysis"],
+    mutationFn: ({ id, payload }) =>
+      sessionApi.submitManualSessionAnalysis(id, payload),
+
+    onSuccess: (data, variables) => {
+      toast.success("Manual analysis saved successfully");
+      queryClient.invalidateQueries({
+        queryKey: ["sessionAnalysis", variables.id],
+      });
+    },
+
+    onError: (error) => {
+      toast.error(
+        error.response?.data?.message || "Failed to save manual analysis",
+      );
+    },
+  });
+};
+
+/* =========================
    JOIN SESSION (FIXED 🔥)
 ========================= */
 export const useJoinSession = () => {

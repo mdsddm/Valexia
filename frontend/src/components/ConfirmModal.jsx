@@ -1,7 +1,22 @@
 import { AlertTriangle } from "lucide-react";
 
-function ConfirmModal({ isOpen, onClose, onConfirm, title, message, loading }) {
+function ConfirmModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  message,
+  loading,
+  confirmLabel = "Delete",
+  loadingLabel = "Processing...",
+  tone = "danger",
+}) {
   if (!isOpen) return null;
+
+  const confirmButtonClass =
+    tone === "danger"
+      ? "flex-1 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition disabled:opacity-50"
+      : "flex-1 py-2 rounded-lg bg-primary text-primary-content hover:opacity-90 transition disabled:opacity-50";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
@@ -35,9 +50,9 @@ function ConfirmModal({ isOpen, onClose, onConfirm, title, message, loading }) {
           <button
             onClick={onConfirm}
             disabled={loading}
-            className="flex-1 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition disabled:opacity-50"
+            className={confirmButtonClass}
           >
-            {loading ? "Deleting..." : "Delete"}
+            {loading ? loadingLabel : confirmLabel}
           </button>
         </div>
       </div>

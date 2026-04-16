@@ -62,15 +62,12 @@ function DashboardPage() {
     if (roomConfig.topics.length === 0) return;
     if (roomConfig.type === "scheduled" && !roomConfig.scheduledAt) return;
 
-    createSessionMutation.mutate(
-      roomConfig,
-      {
-        onSuccess: (data) => {
-          setShowCreateModal(false);
-          navigate(`/session/${data.session._id}`);
-        },
-      }
-    );
+    createSessionMutation.mutate(roomConfig, {
+      onSuccess: (data) => {
+        setShowCreateModal(false);
+        navigate(`/session/${data.session._id}`);
+      },
+    });
   };
 
   // JOIN
@@ -119,7 +116,6 @@ function DashboardPage() {
   return (
     <>
       <div className="min-h-screen bg-linear-to-b from-base-200 to-base-100">
-
         {/* NAVBAR */}
         <Navbar />
 
@@ -132,7 +128,6 @@ function DashboardPage() {
 
         {/* MAIN */}
         <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-
           {/* STATS */}
           <StatsCards
             activeSessionsCount={
@@ -160,13 +155,12 @@ function DashboardPage() {
           </div>
 
           {/* RECENT SESSIONS */}
-          <div className="bg-base-100 border border-base-300 rounded-2xl p-5 shadow-sm">
+          <div className="bg-linear-to-br from-base-100 via-base-100 to-base-200/55 border border-base-300 rounded-2xl p-6 shadow-sm">
             <RecentSessions
               sessions={recentSessions}
               isLoading={loadingRecentSessions}
             />
           </div>
-
         </div>
       </div>
 

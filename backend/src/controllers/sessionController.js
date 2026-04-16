@@ -2,6 +2,68 @@ import { chatClient, streamClient } from "../lib/stream.js";
 import Session from "../models/Session.js";
 import Problem from "../models/Problem.js";
 import bcrypt from "bcryptjs";
+import {
+  generateSessionAnalysis,
+  generateFallbackSessionAnalysis,
+} from "../services/sessionAnalysis.js";
+
+function hasSessionAccess(session, userId) {
+  const targetId = userId?.toString();
+  const hostId = (session.host?._id || session.host)?.toString();
+  const participantId = (
+    session.participant?._id || session.participant
+  )?.toString();
+
+  return hostId === targetId || participantId === targetId;
+}
+
+function isInsufficientQuotaError(errorMessage = "") {
+  return /insufficient_quota|quota/i.test(errorMessage);
+}
+
+function parseListInput(value, maxItems = 8) {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => (typeof item === "string" ? item.trim() : ""))
+      .filter(Boolean)
+      .slice(0, maxItems);
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split("\n")
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, maxItems);
+  }
+
+  return [];
+}
+
+function clampScore(value) {
+  const parsed = Number(value);
+  if (Number.isNaN(parsed)) return 0;
+  return Math.max(0, Math.min(100, Math.round(parsed)));
+}
+
+function normalizeSolvedStatus(value) {
+  return ["yes", "partial", "no"].includes(value) ? value : "no";
+}
+
+function parseQuestionOutcomes(value, maxItems = 10) {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => ({
+      problemId: item?.problemId || null,
+      title:
+        typeof item?.title === "string" ? item.title.trim().slice(0, 120) : "",
+      solved: normalizeSolvedStatus(item?.solved),
+      notes:
+        typeof item?.notes === "string" ? item.notes.trim().slice(0, 500) : "",
+    }))
+    .slice(0, maxItems);
+}
 
 // =======================
 // CREATE SESSION
@@ -278,8 +340,13 @@ export async function endSession(req, res) {
       return res.status(404).json({ message: "Session not found" });
     }
 
-    if (session.host.toString() !== userId.toString()) {
-      return res.status(403).json({ message: "Only host allowed" });
+    const isHost = session.host?.toString() === userId.toString();
+    const isParticipant = session.participant?.toString() === userId.toString();
+
+    if (!isHost && !isParticipant) {
+      return res
+        .status(403)
+        .json({ message: "Only host or candidate allowed" });
     }
 
     if (session.status === "completed") {
@@ -295,7 +362,7 @@ export async function endSession(req, res) {
     await chatClient.channel("messaging", session.callId).delete();
 
     session.status = "completed";
-    await session.save();
+    await session.save({ validateModifiedOnly: true });
 
     return res.status(200).json({
       message: "Session ended successfully",
@@ -349,6 +416,232 @@ export async function deleteSession(req, res) {
     });
   } catch (error) {
     console.log("deleteSession error:", error.message);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+// =======================
+// GENERATE SESSION ANALYSIS
+// =======================
+export async function analyzeSession(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+
+    const session = await Session.findById(id)
+      .populate("host", "name email profileImage clerkId")
+      .populate("participant", "name email profileImage clerkId")
+      .populate("problems", "title difficulty tags topics");
+
+    if (!session) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+
+    if (!hasSessionAccess(session, userId)) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    if (session.status !== "completed") {
+      return res.status(400).json({ message: "Session must be completed" });
+    }
+
+    try {
+      const analysis = await generateSessionAnalysis(session);
+
+      session.aiAnalysis = {
+        ...session.aiAnalysis,
+        ...analysis,
+        status: "generated",
+        errorMessage: "",
+        generatedAt: new Date(),
+      };
+
+      await session.save({ validateModifiedOnly: true });
+
+      return res.status(200).json({
+        message: "Analysis generated",
+        analysis: session.aiAnalysis,
+      });
+    } catch (error) {
+      if (isInsufficientQuotaError(error.message)) {
+        session.aiAnalysis = {
+          ...session.aiAnalysis,
+          status: "failed",
+          errorMessage:
+            "OpenAI quota exceeded. Manual analysis is required for this session.",
+          generatedAt: new Date(),
+        };
+
+        await session.save({ validateModifiedOnly: true });
+
+        return res.status(200).json({
+          message: "Manual analysis required",
+          manualRequired: true,
+          analysis: session.aiAnalysis,
+        });
+      }
+
+      const fallbackAnalysis = generateFallbackSessionAnalysis(
+        session,
+        error.message,
+      );
+
+      session.aiAnalysis = {
+        ...session.aiAnalysis,
+        ...fallbackAnalysis,
+        status: "generated",
+        errorMessage: `AI provider failed, fallback used: ${error.message}`,
+        generatedAt: new Date(),
+      };
+      await session.save({ validateModifiedOnly: true });
+
+      return res.status(200).json({
+        message: "Analysis generated with fallback",
+        analysis: session.aiAnalysis,
+        warning: error.message,
+      });
+    }
+  } catch (error) {
+    console.log("analyzeSession error:", error.message);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+// =======================
+// SAVE MANUAL SESSION ANALYSIS
+// =======================
+export async function saveManualSessionAnalysis(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+
+    const session = await Session.findById(id)
+      .populate("host", "name email profileImage clerkId")
+      .populate("participant", "name email profileImage clerkId")
+      .populate("problems", "title")
+      .select(
+        "name status aiAnalysis host participant problems updatedAt createdAt",
+      );
+
+    if (!session) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+
+    if (!hasSessionAccess(session, userId)) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    if (session.status !== "completed") {
+      return res.status(400).json({ message: "Session must be completed" });
+    }
+
+    const {
+      overallScore,
+      recommendation,
+      summary,
+      strengths,
+      improvements,
+      redFlags,
+      rubric,
+      manualDetails,
+    } = req.body || {};
+
+    if (!summary || typeof summary !== "string" || !summary.trim()) {
+      return res.status(400).json({ message: "Summary is required" });
+    }
+
+    const normalizedRecommendation = [
+      "hire",
+      "lean_hire",
+      "no_hire",
+      "insufficient_data",
+    ].includes(recommendation)
+      ? recommendation
+      : "insufficient_data";
+
+    session.aiAnalysis = {
+      ...session.aiAnalysis,
+      status: "generated",
+      overallScore: clampScore(overallScore),
+      recommendation: normalizedRecommendation,
+      summary: summary.trim().slice(0, 1200),
+      strengths: parseListInput(strengths, 8),
+      improvements: parseListInput(improvements, 8),
+      redFlags: parseListInput(redFlags, 8),
+      rubric: {
+        problemSolving: clampScore(rubric?.problemSolving),
+        codeQuality: clampScore(rubric?.codeQuality),
+        communication: clampScore(rubric?.communication),
+        debugging: clampScore(rubric?.debugging),
+        timeManagement: clampScore(rubric?.timeManagement),
+      },
+      manualDetails: {
+        confidence: clampScore(manualDetails?.confidence),
+        interviewerNotes:
+          typeof manualDetails?.interviewerNotes === "string"
+            ? manualDetails.interviewerNotes.trim().slice(0, 1200)
+            : "",
+        questionOutcomes: parseQuestionOutcomes(
+          manualDetails?.questionOutcomes,
+          10,
+        ),
+      },
+      model: "manual-review",
+      errorMessage: "",
+      generatedAt: new Date(),
+    };
+
+    await session.save({ validateModifiedOnly: true });
+
+    return res.status(200).json({
+      message: "Manual analysis saved",
+      analysis: session.aiAnalysis,
+    });
+  } catch (error) {
+    console.log("saveManualSessionAnalysis error:", error.message);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+// =======================
+// GET SESSION ANALYSIS
+// =======================
+export async function getSessionAnalysis(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+
+    const session = await Session.findById(id)
+      .populate("host", "name email profileImage clerkId")
+      .populate("participant", "name email profileImage clerkId")
+      .populate("problems", "title")
+      .select(
+        "name status aiAnalysis host participant problems updatedAt createdAt",
+      );
+
+    if (!session) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+
+    if (!hasSessionAccess(session, userId)) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    return res.status(200).json({
+      session: {
+        _id: session._id,
+        name: session.name,
+        status: session.status,
+        host: session.host,
+        participant: session.participant,
+        problems: session.problems,
+        createdAt: session.createdAt,
+        updatedAt: session.updatedAt,
+      },
+      analysis: session.aiAnalysis,
+    });
+  } catch (error) {
+    console.log("getSessionAnalysis error:", error.message);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 }
