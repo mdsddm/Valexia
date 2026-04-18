@@ -8,6 +8,7 @@ import {
   ClockIcon,
   TrashIcon,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { getDifficultyBadgeClass } from "../lib/utils";
 import { ActiveSessionsSkeleton } from "./AppSkeletons.jsx";
 
@@ -19,11 +20,35 @@ function ActiveSessions({
   onDeleteSession,
   currentUserId,
 }) {
+  const [, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setNow(Date.now());
+    }, 30000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
+  const isScheduledJoinable = (session) => {
+    if (session.type !== "scheduled") return true;
+    if (!session.scheduledAt) return false;
+
+    const startTime = new Date(session.scheduledAt).getTime();
+    if (Number.isNaN(startTime)) return false;
+
+    const joinWindowStart = startTime - 5 * 60 * 1000;
+    return Date.now() >= joinWindowStart;
+  };
+
   const liveSessions = sessions.filter((s) => (s.type || "live") === "live");
   const scheduledSessions = sessions.filter((s) => s.type === "scheduled");
 
   const renderSessionCard = (session) => {
     const isScheduled = session.type === "scheduled";
+    const canJoinScheduledSession = isScheduledJoinable(session);
     const isFull = session.participant && !isUserInSession(session);
     const isHost = session?.host?.clerkId === currentUserId;
 
@@ -104,7 +129,7 @@ function ActiveSessions({
           )}
 
           {/* JOIN / REJOIN */}
-          {isScheduled ? (
+          {isScheduled && !canJoinScheduledSession ? (
             <span className="text-xs px-3 py-1 rounded-full bg-yellow-100 text-yellow-700">
               Starts Soon
             </span>

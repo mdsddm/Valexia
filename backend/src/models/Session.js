@@ -66,6 +66,39 @@ const sessionSchema = new mongoose.Schema(
       max: 300,
     },
 
+    reminder15mSentAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+
+    reminder15mAttemptedAt: {
+      type: Date,
+      default: null,
+    },
+
+    reminder5mSentAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+
+    reminder5mAttemptedAt: {
+      type: Date,
+      default: null,
+    },
+
+    sessionStartedEmailSentAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+
+    sessionStartedEmailAttemptedAt: {
+      type: Date,
+      default: null,
+    },
+
     questionCount: {
       type: Number,
       default: 2,
@@ -301,6 +334,14 @@ sessionSchema.virtual("canJoin").get(function () {
 // 📦 indexes
 sessionSchema.index({ host: 1, status: 1 });
 sessionSchema.index({ participant: 1, status: 1 });
+sessionSchema.index({
+  status: 1,
+  type: 1,
+  scheduledAt: 1,
+  reminder15mSentAt: 1,
+  reminder5mSentAt: 1,
+  sessionStartedEmailSentAt: 1,
+});
 
 const Session = mongoose.model("Session", sessionSchema);
 
