@@ -76,6 +76,97 @@ function getSafeManualDetails(value) {
   };
 }
 
+function normalizeDifficulty(value) {
+  const allowed = new Set(["easy", "medium", "hard"]);
+  const normalized = typeof value === "string" ? value.toLowerCase() : "";
+  return allowed.has(normalized) ? normalized : "medium";
+}
+
+function normalizeDifficultyList(value, count = 0) {
+  const list = Array.isArray(value) ? value : [];
+  const targetLength = Math.max(0, Number(count) || 0);
+  const normalized = list.slice(0, targetLength).map(normalizeDifficulty);
+
+  while (normalized.length < targetLength) {
+    normalized.push("medium");
+  }
+
+  return normalized;
+}
+
+function normalizeTopicList(value) {
+  if (!Array.isArray(value)) return [];
+
+  return [
+    ...new Set(
+      value
+        .map((item) => (typeof item === "string" ? item.trim() : ""))
+        .filter(Boolean),
+    ),
+  ];
+}
+
+async function pickProblemsForSession({ questionCount, topics, difficulties }) {
+  const safeCount = Math.max(1, Number(questionCount) || 1);
+  const selectedTopics = normalizeTopicList(topics);
+  const selectedDifficulties = normalizeDifficultyList(difficulties, safeCount);
+
+  const problems = [];
+  const usedIds = new Set();
+
+  for (let index = 0; index < safeCount; index += 1) {
+    const difficulty = selectedDifficulties[index] || "medium";
+
+    const priorityPipelines = [
+      {
+        tags: selectedTopics.length ? { $in: selectedTopics } : undefined,
+        difficulty,
+      },
+      {
+        tags: selectedTopics.length ? { $in: selectedTopics } : undefined,
+      },
+      {
+        difficulty,
+      },
+      {},
+    ];
+
+    let pickedProblem = null;
+
+    for (const pipeline of priorityPipelines) {
+      const query = Object.fromEntries(
+        Object.entries(pipeline).filter(([, value]) => value !== undefined),
+      );
+
+      const matches = await Problem.aggregate([
+        { $match: query },
+        { $sample: { size: 10 } },
+      ]);
+
+      pickedProblem = matches.find(
+        (problem) => !usedIds.has(String(problem._id)),
+      );
+      if (pickedProblem) break;
+    }
+
+    if (!pickedProblem) {
+      const fallbackMatches = await Problem.aggregate([
+        { $sample: { size: 10 } },
+      ]);
+      pickedProblem = fallbackMatches.find(
+        (problem) => !usedIds.has(String(problem._id)),
+      );
+    }
+
+    if (pickedProblem) {
+      usedIds.add(String(pickedProblem._id));
+      problems.push(pickedProblem);
+    }
+  }
+
+  return problems;
+}
+
 // =======================
 // CREATE SESSION
 // =======================
@@ -91,6 +182,7 @@ export async function createSession(req, res) {
       type = "live",
       scheduledAt,
       questionCount = 2,
+      questionDifficulties = [],
       duration = 30,
       password,
       available_topic,
@@ -112,6 +204,12 @@ export async function createSession(req, res) {
       return res.status(400).json({ message: "Topics required" });
     }
 
+    if (finalTopics.length > Number(questionCount || 2)) {
+      return res.status(400).json({
+        message: "Topic count cannot exceed question count",
+      });
+    }
+
     if (type === "scheduled" && !scheduledAt) {
       return res.status(400).json({ message: "scheduledAt required" });
     }
@@ -129,6 +227,10 @@ export async function createSession(req, res) {
       host: userId,
       name: name || "Interview Session",
       questionCount: Number(questionCount) || 2,
+      questionDifficulties: normalizeDifficultyList(
+        questionDifficulties,
+        Number(questionCount) || 2,
+      ),
       scheduledAt: type === "scheduled" ? new Date(scheduledAt) : null,
       duration,
       type,
@@ -296,12 +398,30 @@ export async function joinSession(req, res) {
       }
     }
 
+    const availableTopics = normalizeTopicList(session.available_topic);
+    const chosenTopics = normalizeTopicList(topics).filter((topic) =>
+      availableTopics.includes(topic),
+    );
+    const maxTopicCount = Math.max(1, Number(session.questionCount) || 2);
+
+    if (chosenTopics.length > maxTopicCount) {
+      return res.status(400).json({
+        message: `Maximum topic count reached (${maxTopicCount})`,
+      });
+    }
+
+    if (topics?.length && chosenTopics.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "Choose at least one valid topic" });
+    }
+
     // ⚡ atomic join (prevents race condition)
-    const problems = await Problem.aggregate([
-      // If we want to strictly match topics, un-comment the next line.
-      // For now, randomly select based on questionCount to fulfill the generic requirements:
-      { $sample: { size: session.questionCount || 2 } },
-    ]);
+    const problems = await pickProblemsForSession({
+      questionCount: session.questionCount || 2,
+      topics: chosenTopics.length > 0 ? chosenTopics : availableTopics,
+      difficulties: session.questionDifficulties || [],
+    });
     const problemIds = problems.map((p) => p._id);
 
     const updatedSession = await Session.findOneAndUpdate(
@@ -309,7 +429,7 @@ export async function joinSession(req, res) {
       {
         participant: userId,
         status: "active",
-        chosen_topic: topics,
+        chosen_topic: chosenTopics.length > 0 ? chosenTopics : availableTopics,
         problems: problemIds,
         startedAt: Date.now(),
       },

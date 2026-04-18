@@ -71,6 +71,20 @@ const sessionSchema = new mongoose.Schema(
       default: 2,
     },
 
+    questionDifficulties: {
+      type: [String],
+      default: [],
+      validate: {
+        validator: function (arr) {
+          if (!Array.isArray(arr)) return false;
+          return arr.every((value) =>
+            ["easy", "medium", "hard"].includes(value),
+          );
+        },
+        message: "Question difficulties must be easy, medium, or hard",
+      },
+    },
+
     // 📊 status
     status: {
       type: String,
@@ -99,14 +113,6 @@ const sessionSchema = new mongoose.Schema(
     chosen_topic: {
       type: [String],
       default: [],
-      validate: [
-        {
-          validator: function (arr) {
-            return arr.length <= 2;
-          },
-          message: "Max 2 topics allowed",
-        },
-      ],
     },
 
     // 🔐 password

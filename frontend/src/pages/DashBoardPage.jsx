@@ -38,6 +38,7 @@ function DashboardPage() {
     type: "live",
     scheduledAt: "",
     questionCount: 2,
+    questionDifficulties: ["medium", "medium"],
     duration: 30,
     topics: [],
   });
