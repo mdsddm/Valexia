@@ -66,7 +66,11 @@ function DashboardPage() {
     createSessionMutation.mutate(roomConfig, {
       onSuccess: (data) => {
         setShowCreateModal(false);
-        navigate(`/session/${data.session._id}`);
+
+        const createdSessionType = data?.session?.type || roomConfig.type;
+        if (createdSessionType === "live") {
+          navigate(`/session/${data.session._id}`);
+        }
       },
     });
   };
