@@ -65,6 +65,17 @@ function parseQuestionOutcomes(value, maxItems = 10) {
     .slice(0, maxItems);
 }
 
+function getSafeManualDetails(value) {
+  return {
+    confidence: clampScore(value?.confidence),
+    interviewerNotes:
+      typeof value?.interviewerNotes === "string"
+        ? value.interviewerNotes.trim().slice(0, 1200)
+        : "",
+    questionOutcomes: parseQuestionOutcomes(value?.questionOutcomes, 10),
+  };
+}
+
 // =======================
 // CREATE SESSION
 // =======================
@@ -448,9 +459,13 @@ export async function analyzeSession(req, res) {
     try {
       const analysis = await generateSessionAnalysis(session);
 
+      const safeManualDetails = getSafeManualDetails(
+        session.aiAnalysis?.manualDetails,
+      );
+
       session.aiAnalysis = {
-        ...session.aiAnalysis,
         ...analysis,
+        manualDetails: safeManualDetails,
         status: "generated",
         errorMessage: "",
         generatedAt: new Date(),
@@ -463,12 +478,17 @@ export async function analyzeSession(req, res) {
         analysis: session.aiAnalysis,
       });
     } catch (error) {
+      const safeManualDetails = getSafeManualDetails(
+        session.aiAnalysis?.manualDetails,
+      );
+
       if (isInsufficientQuotaError(error.message)) {
         session.aiAnalysis = {
           ...session.aiAnalysis,
+          manualDetails: safeManualDetails,
           status: "failed",
           errorMessage:
-            "OpenAI quota exceeded. Manual analysis is required for this session.",
+            "Gemini quota exceeded. Manual analysis is required for this session.",
           generatedAt: new Date(),
         };
 
@@ -487,8 +507,8 @@ export async function analyzeSession(req, res) {
       );
 
       session.aiAnalysis = {
-        ...session.aiAnalysis,
         ...fallbackAnalysis,
+        manualDetails: safeManualDetails,
         status: "generated",
         errorMessage: `AI provider failed, fallback used: ${error.message}`,
         generatedAt: new Date(),
@@ -503,7 +523,9 @@ export async function analyzeSession(req, res) {
     }
   } catch (error) {
     console.log("analyzeSession error:", error.message);
-    return res.status(500).json({ message: "Internal Server Error" });
+    return res
+      .status(500)
+      .json({ message: "Internal Server Error", error: error.message });
   }
 }
 
