@@ -22,6 +22,7 @@ export const useCreateSession = () => {
             : null,
 
         questionCount: roomConfig.questionCount,
+        questionDifficulties: roomConfig.questionDifficulties,
         duration: roomConfig.duration,
 
         // ✅ CRITICAL FIX

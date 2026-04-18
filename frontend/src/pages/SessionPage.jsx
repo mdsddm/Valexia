@@ -10,7 +10,7 @@ import {
 
 import Navbar from "../components/Navbar.jsx";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import { LogOutIcon, PhoneOffIcon } from "lucide-react";
+import { CheckCircle2Icon, LogOutIcon, PhoneOffIcon } from "lucide-react";
 
 import CodeEditorPanel from "../components/CodeEditorPanel.jsx";
 import OutputPanel from "../components/OutputPanel.jsx";
@@ -62,10 +62,18 @@ function SessionPage() {
     session?.problems?.length > currentProblemIndex
       ? session.problems[currentProblemIndex]
       : session?.problems?.[0] || null;
+  const problemCount = session?.problems?.length || 0;
+
+  useEffect(() => {
+    if (problemCount === 0) return;
+
+    setCurrentProblemIndex((prev) => Math.min(prev, problemCount - 1));
+  }, [problemCount]);
 
   const [selectedLanguage, setSelectedLanguage] = useState("javascript");
   const [code, setCode] = useState("");
   const [customInput, setCustomInput] = useState("");
+  const [solvedProblemIds, setSolvedProblemIds] = useState({});
 
   const [isMax, setIsMax] = useState(
     localStorage.getItem("ifSessionMax") === "true",
@@ -257,6 +265,10 @@ function SessionPage() {
 
     toast.success("Code executed!");
     setOutput(result);
+
+    if (result.passed === true && problemData?._id) {
+      setSolvedProblemIds((prev) => ({ ...prev, [problemData._id]: true }));
+    }
   };
 
   /* END SESSION */
@@ -363,21 +375,52 @@ function SessionPage() {
                   <PanelGroup ref={verticalPanelRef} direction="vertical">
                     <Panel defaultSize={50}>
                       <div className="p-6 flex flex-col h-full gap-4 relative overflow-hidden">
-                        <div className="flex justify-between items-center shrink-0">
-                          <h1 className="text-2xl font-bold">
+                        <div className="flex flex-col gap-3 shrink-0">
+                          <h1 className="text-2xl font-bold min-w-0 wrap-break-word">
                             {problemData?.title || "Select problem"}
                           </h1>
                           {session?.problems?.length > 1 && (
-                            <div className="flex gap-2">
-                              {session.problems.map((p, idx) => (
-                                <button
-                                  key={p._id}
-                                  onClick={() => setCurrentProblemIndex(idx)}
-                                  className={`btn btn-sm ${currentProblemIndex === idx ? "btn-primary" : "btn-outline"}`}
-                                >
-                                  Problem {idx + 1}
-                                </button>
-                              ))}
+                            <div className="flex w-full max-w-full overflow-x-auto pb-1 pr-1">
+                              <div className="flex min-w-max gap-2">
+                                {session.problems.map((p, idx) => {
+                                  const isActive = currentProblemIndex === idx;
+                                  const isSolved = Boolean(
+                                    solvedProblemIds[p._id],
+                                  );
+
+                                  return (
+                                    <button
+                                      key={p._id}
+                                      type="button"
+                                      onClick={() =>
+                                        setCurrentProblemIndex(idx)
+                                      }
+                                      className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition ${
+                                        isActive
+                                          ? isSolved
+                                            ? "border-success/60 bg-success/15 text-success"
+                                            : "border-primary/60 bg-primary/15 text-primary"
+                                          : isSolved
+                                            ? "border-success/45 bg-success/10 text-success"
+                                            : "border-base-300 bg-base-100 text-base-content/70 hover:border-primary/40"
+                                      }`}
+                                      title={
+                                        isSolved ? "Solved" : "Not solved yet"
+                                      }
+                                    >
+                                      <span className="grid size-4 place-items-center rounded-full bg-current/10 text-[10px] font-bold">
+                                        {idx + 1}
+                                      </span>
+                                      <span className="hidden sm:inline">
+                                        {isSolved ? "Solved" : "Problem"}
+                                      </span>
+                                      <span className="sm:hidden">
+                                        #{idx + 1}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
                             </div>
                           )}
                         </div>
