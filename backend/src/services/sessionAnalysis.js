@@ -32,6 +32,7 @@ function buildPromptPayload(session) {
     durationMinutes: session.duration,
     startedAt: session.startedAt,
     createdAt: session.createdAt,
+    questionDifficulties: session.questionDifficulties || [],
     availableTopics: session.available_topic || [],
     chosenTopics: session.chosen_topic || [],
     problems: (session.problems || []).map((p) => ({
