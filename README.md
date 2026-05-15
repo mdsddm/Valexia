@@ -95,3 +95,70 @@ Valexia
 ├── package-lock.json
 ├── .gitignore
 └── README.md
+Installation and Setup
+1. Clone the repository
+git clone https://github.com/mdsddm/Valexia.git
+2. Go to the project folder
+cd Valexia
+Backend Setup
+1. Go to the backend folder
+cd backend
+2. Install backend dependencies
+npm install
+3. Create a .env file
+
+Create a .env file inside the backend folder and add required environment variables.
+
+Example:
+
+PORT=5000
+DATABASE_URL=your_database_url
+AI_API_KEY=your_ai_api_key
+CLERK_SECRET_KEY=your_clerk_secret_key
+4. Start the backend server
+npm start
+Frontend Setup
+1. Go to the frontend folder
+cd frontend
+2. Install frontend dependencies
+npm install
+3. Start the frontend server
+npm run dev
+How It Works
+User logs in to the platform.
+Interviewer creates or selects a coding problem.
+Candidate joins the interview session.
+Candidate solves and submits the solution.
+After session completion, required data is sent to the AI API.
+AI generates the candidate score.
+The score is displayed and stored in the system.
+AI Score Generation Flow
+Candidate Submission
+        ↓
+Backend API
+        ↓
+AI API
+        ↓
+Generated Score
+        ↓
+Database
+        ↓
+Frontend Score Display
+Future Scope
+Detailed AI feedback
+Real-time code execution
+Test case validation
+Video call support
+Analytics dashboard
+Resume-based interview preparation
+AI-generated interview questions
+Mobile application support
+Multi-language support
+Conclusion
+
+Valexia helps make technical interview evaluation more structured and efficient. It provides a platform for managing interview sessions and uses AI as a supporting feature to generate candidate scores after the session.
+
+Author
+
+Mohd Saddam
+MCA, Jamia Millia Islamia
